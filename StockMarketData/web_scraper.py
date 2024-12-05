@@ -163,17 +163,17 @@ class web_scraper:
             link = article['href']
             if not link.startswith("http"):
                 link = "https://investors.cleanspark.com" + link
-
+                
             if any(item['link'] == link for item in existing_links):
                 continue
 
             driver.get(link)
             try:
                 WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.ID, "_ctrl0_ctl52_spanDate"))
+                    EC.presence_of_element_located((By.ID, "_ctrl0_ctl49_spanDate"))
                 )
                 article_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                date_element = article_soup.find("span", id="_ctrl0_ctl52_spanDate")
+                date_element = article_soup.find("span", id="_ctrl0_ctl49_spanDate")
                 article_date = date_element.get_text(strip=True) if date_element else "Date not found"
             except Exception as e:
                 article_date = f"Error retrieving date: {e}"
@@ -198,11 +198,7 @@ class web_scraper:
 
 # Only execute when this script is run directly
 if __name__ == "__main__":
-    stock_name = "CLSK".lower()
+    stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
-    # scraper.scrape_articles()
-    scraper.scrape_cpi()
-
-
-
+    scraper.scrape_articles()
