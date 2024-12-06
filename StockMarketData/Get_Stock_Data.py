@@ -22,7 +22,7 @@ class stock_reader:
         start_date, end_date = self.get_start_and_end_date(year,month)
         data = self.download_data(start_date,end_date,stock)
 
-        if isinstance(data, pd.DataFrame):
+        if not data.empty:
             date_str = f'{year}-{month:02d}-{day:02d}'
             date = pd.Timestamp(date_str)
             if date in data.index:
@@ -34,28 +34,34 @@ class stock_reader:
             # Return the error message from download_data
             return "No data found"
         
-    def download_data(self, s, e, stock):
-            cache_key = (s,e,stock)
+    def is_valid_date_range(self, s, e):
+        today = pd.Timestamp.now()
+        if pd.Timestamp(s) > today:
+            return False
+        return True
 
-            if cache_key in self.cache:
-                #print("Returned the cache")
-                return self.cache[cache_key]
-            try:
-                spy_ohlc_df = yf.download(stock, start=s, end=e)
-                if not spy_ohlc_df.empty:
-                    self.cache[cache_key] = spy_ohlc_df
-                    return spy_ohlc_df
-                else:
-                    return f"No data available for {stock} between {s} and {e}"
-            except Exception as ex:
-                    return f"An error occurred: {str(ex)}"
-            
+    def download_data(self, s, e, stock):
+        if not self.is_valid_date_range(s, e):
+            print("Invalid date range")
+            return pd.DataFrame()
+
+        try:
+            # Attempt to download with a timeout
+            spy_ohlc_df = yf.download(stock, start=s, end=e, progress=False, timeout=5)
+            if not spy_ohlc_df.empty:
+                return spy_ohlc_df
+            else:
+                print(f"No data found for {stock} between {s} and {e}.")
+                return pd.DataFrame()
+        except Exception as ex:
+            print(f"Download error for {stock}: {ex}")
+            return pd.DataFrame()
     
     def get_close_price(self, s, e, stock):
         data = self.download_data(s, e, stock)
         
         # Check if data is a DataFrame or error message
-        if isinstance(data, pd.DataFrame):
+        if not data.empty:
             l_close = round(data['Close'], 2).tolist()
             return l_close
         else:
@@ -192,16 +198,13 @@ class stock_reader:
             pd.Timestamp(item["date"]): item["stock"] for item in earnings_data if item["stock"] == stock
         }
 
-        print("Earnings dates were:", earnings_dates)
-
         cpi_data_all = self.get_json_data("cpi.json")
 
 
         cpi_data = {
             pd.Timestamp(item["date"]) for item in cpi_data_all
         }
-
-        print("CPI data is", cpi_data)
+        
 
         # Create a figure and axis
         fig, ax = plt.subplots(figsize=(10, 6))

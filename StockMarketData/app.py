@@ -1,5 +1,6 @@
 
 from Get_Stock_Data import stock_reader
+from datetime import datetime
 import tkinter as tk
 from tkinter import ttk            
 import tkinter as tk
@@ -16,6 +17,10 @@ class App:
         self.path = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
         self.root = root
         self.root.title("Stock Data Calendar Viewer")
+        
+        current_date = datetime.now()
+        current_month = current_date.month
+        current_year = current_date.year
 
         # Main frame for the layout
         main_frame = tk.Frame(root, padx=10, pady=10)
@@ -28,21 +33,18 @@ class App:
         self.stock_entry = ttk.Combobox(stock_frame, values=["SPY", "TSLA", "CLSK", "NVDA"], state="readonly")
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
-        self.current_year = 2024
-        self.current_month = 10
-
         # Year and Month selection
         date_frame = tk.Frame(main_frame, pady=5)
         date_frame.grid(row=1, column=0, sticky="w")
         tk.Label(date_frame, text="Select Year:").grid(row=0, column=0, padx=5, pady=5)
-        self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024], state="readonly")
+        self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024,2025], state="readonly")
         self.year_entry.grid(row=0, column=1, padx=5)
-        self.year_entry.set(2024)
+        self.year_entry.set(current_year)
 
         tk.Label(date_frame, text="Select Month:").grid(row=0, column=2, padx=5, pady=5)
         self.month_entry = ttk.Combobox(date_frame, values=list(range(1, 13)), state="readonly")
         self.month_entry.grid(row=0, column=3, padx=5)
-        self.month_entry.set(10)
+        self.month_entry.set(current_month)
         # Buttons for calendar actions
         button_frame = tk.Frame(main_frame, pady=10)
         button_frame.grid(row=2, column=0, sticky="w")
@@ -104,6 +106,9 @@ class App:
 
         day_window = tk.Toplevel(self.root)
         day_window.title(f"Stock Details for {stock} - {year}-{month:02d}-{day:02d}")
+        #     # Add dummy button
+        # dummy_button = tk.Button(day_window, text="Dummy Button", command=lambda: print("Dummy button clicked!"))
+        # dummy_button.pack(pady=10)
         # Get the data for the selected day
         data = self.stock_reader_instance.get_data_for_day(year, month, day, stock)
         start_date=f"{year}-{month}-{day}"
@@ -114,6 +119,7 @@ class App:
 
         else:
             links = []
+
 
         if isinstance(data, pd.Series):
             # Extract the required data and convert them to standard Python types
@@ -130,6 +136,7 @@ class App:
             tk.Label(day_window, text=f"Low Price: ${low_price:,.2f}", font=("Arial", 12)).pack(pady=2)
             tk.Label(day_window, text=f"Close Price: ${close_price:,.2f}", font=("Arial", 12)).pack(pady=2)
             tk.Label(day_window, text=f"Volume: {volume:,}", font=("Arial", 12)).pack(pady=2)
+            
 
             # Handle sentiment data
             if sentiment_data !=None:
@@ -159,7 +166,6 @@ class App:
          # Fetch the selected stock dynamically from the dropdown
         stock = str(self.stock_entry.get())
 
-        print("The stock was set to", stock)
         self.web_scraper_instance = web_scraper(stock)
 
         # Only scrape articles for CLSK

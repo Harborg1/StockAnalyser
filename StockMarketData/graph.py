@@ -1,44 +1,26 @@
-import yfinance as yf
-import datetime as dt
-import matplotlib.pyplot as plt
+# import yfinance as yf
 
-def get_date_x_days_before(date_string, num_days_before):
-    date_object = dt.datetime.strptime(date_string, "%Y-%m-%d")
-    new_date = date_object - dt.timedelta(days=num_days_before)
-    new_date_string = new_date.strftime("%Y-%m-%d")
-    return new_date_string
+# def get_hourly_stock_data(ticker_symbol, start_date, end_date):
+#     """
+#     Fetch stock data with hourly interval for a specific date range.
 
-stock = "CLSK"
-start_date = "2024-10-01"
-end_date = "2024-12-31"
-num_periods = 20
-# Get a few days before the start date to accommodate the period size
-start_date_x_days_before = get_date_x_days_before(start_date, num_periods * 2)
+#     Args:
+#         ticker_symbol (str): The stock ticker symbol (e.g., 'AAPL', 'MSFT').
+#         start_date (str): The start date in 'YYYY-MM-DD' format.
+#         end_date (str): The end date in 'YYYY-MM-DD' format.
 
-# Grab the stock data
-stock_data = yf.download(stock, start=start_date_x_days_before, end=end_date)
+#     Returns:
+#         pandas.DataFrame: A DataFrame containing stock data with hourly intervals.
+#     """
+#     # Download stock data with hourly interval
+#     stock_data = yf.download(ticker_symbol, start=start_date, end=end_date, interval='1h')
+    
+#     if stock_data.empty:
+#         print(f"No data available for {ticker_symbol} between {start_date} and {end_date}.")
+#     else:
+#         print(stock_data.head())  # Print the first few rows of the data
+    
+#     return stock_data
 
-# Compute the simple moving average (SMA)
-stock_data["SMA"] = stock_data["Close"].rolling(window=num_periods).mean()
-
-# Now that we calculated the SMA, we can remove the dates before the actual start date that we want.
-stock_data = stock_data[start_date:]
-
-# Plotting
-plt.figure(figsize=(12, 6))
-plt.plot(stock_data.index, stock_data["Close"], label='Close Price', color='blue', linewidth=1.5)
-plt.plot(stock_data.index, stock_data["SMA"], label='20-Day SMA', color='orange', linewidth=1.5)
-
-# Adding titles and labels
-plt.title(f'{stock} Closing Prices and {num_periods}-Day SMA (2020)')
-plt.xlabel('Date')
-plt.ylabel('Price ($)')
-plt.legend()
-plt.grid()
-
-# Show the plot
-plt.show()
-
-# Print the SMA values
-print(stock_data["SMA"])
-
+# # Example usage
+# stock_data = get_hourly_stock_data('AAPL', '2024-01-03', '2024-01-04')
