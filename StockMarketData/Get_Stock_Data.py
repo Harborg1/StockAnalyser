@@ -10,6 +10,7 @@ class stock_reader:
     def __init__(self, day_details_callback = None):
 
         self.cache = {}
+        self.date_cache =  {}
         self.monthly_date = {}
         self.day_details_callback = day_details_callback 
     
@@ -21,7 +22,7 @@ class stock_reader:
     def get_data_for_day(self, year, month, day, stock):
         start_date, end_date = self.get_start_and_end_date(year,month)
         data = self.download_data(start_date,end_date,stock)
-
+        
         if not data.empty:
             date_str = f'{year}-{month:02d}-{day:02d}'
             date = pd.Timestamp(date_str)
@@ -33,22 +34,36 @@ class stock_reader:
         else:
             # Return the error message from download_data
             return "No data found"
-        
-    def is_valid_date_range(self, s, e):
+    
+    def is_valid_date_range(self, s,e):
         today = pd.Timestamp.now()
-        if pd.Timestamp(s) > today:
-            return False
-        return True
-
+        return pd.Timestamp(s) <= today  # Return True or False only
+    
     def download_data(self, s, e, stock):
+
+        # Generate a unique key for caching
+        cache_key = (stock, s, e)
+        date_cache_key = s
+
+        if date_cache_key in self.date_cache:
+            return pd.DataFrame()
+        
+        # Check if the data is already in the cache
+        if cache_key in self.cache:
+            #print(f"Using cached data for {stock} between {s} and {e}.")
+            return self.cache[cache_key]
+        
         if not self.is_valid_date_range(s, e):
+            self.date_cache[s] = True
             print("Invalid date range")
             return pd.DataFrame()
-
+        
         try:
             # Attempt to download with a timeout
             spy_ohlc_df = yf.download(stock, start=s, end=e, progress=False, timeout=5)
             if not spy_ohlc_df.empty:
+                #print("Downloading data...")
+                self.cache[cache_key] = spy_ohlc_df
                 return spy_ohlc_df
             else:
                 print(f"No data found for {stock} between {s} and {e}.")
@@ -56,10 +71,11 @@ class stock_reader:
         except Exception as ex:
             print(f"Download error for {stock}: {ex}")
             return pd.DataFrame()
-    
+        
+
     def get_close_price(self, s, e, stock):
         data = self.download_data(s, e, stock)
-        
+
         # Check if data is a DataFrame or error message
         if not data.empty:
             l_close = round(data['Close'], 2).tolist()
@@ -67,7 +83,7 @@ class stock_reader:
         else:
             # Return the error message or handle it (e.g., log or raise an error)
             return data  # This will return the error message directly
-        
+    
     def get_price_change_per_month(self,year,month,stock):
         start_date, end_date = self.get_start_and_end_date(year,month)
         data = self.download_data(start_date,end_date,stock)
@@ -81,7 +97,6 @@ class stock_reader:
 
         return round(min_val,2),round(max_val,2)
 
-    
     def get_price_range_per_day(self, year,month,stock):
         start_date, end_date = self.get_start_and_end_date(year, month)
         data = self.download_data(start_date,end_date,stock)
@@ -110,7 +125,6 @@ class stock_reader:
         self.monthly_date[key] = (start_date, end_date)
         return start_date, end_date
     
-
     def get_price_or_percentage_change(self, year, month, stock, return_percentage=False):
         start_date, end_date = self.get_start_and_end_date(year, month)
 
@@ -118,7 +132,7 @@ class stock_reader:
         # If l_close is not a list (i.e., it's an error message), handle the error
         if not isinstance(l_close, list):
             return l_close  # Return the error message or handle it appropriately
-
+        
         result = []
         # Get the trading dates within the range
         trading_dates = pd.date_range(start=start_date, end=end_date)
@@ -135,8 +149,9 @@ class stock_reader:
                     else:
                         # Calculate price difference from last month's close
                         change_value = round(l_close[i] - last_month_close, 2)
-                else:
-                    change_value = 0.0  # No previous month data available
+                else: 
+                    change_value = 0.0
+
             else:
                 if return_percentage:
                     # Calculate the percentage change based on current and previous day's close
@@ -205,7 +220,6 @@ class stock_reader:
             pd.Timestamp(item["date"]) for item in cpi_data_all
         }
         
-
         # Create a figure and axis
         fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -311,6 +325,7 @@ class stock_reader:
         ax.set_ylim(-len(month_weeks), 0)
         ax.axis('off')  # Turn off the axes
 
+
         # Set limits and labels
         ax.set_xlim(0, 5)
         ax.set_ylim(-len(month_weeks), 0)
@@ -334,3 +349,4 @@ class stock_reader:
             return plt
         else:  # Show the plot if we want to get a monthly view
             plt.show()
+

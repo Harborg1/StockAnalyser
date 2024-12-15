@@ -17,7 +17,6 @@ class App:
         self.path = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
         self.root = root
         self.root.title("Stock Data Calendar Viewer")
-        
         current_date = datetime.now()
         current_month = current_date.month
         current_year = current_date.year
@@ -25,8 +24,8 @@ class App:
         # Main frame for the layout
         main_frame = tk.Frame(root, padx=10, pady=10)
         main_frame.grid(row=0, column=0)
-
         # Stock selection
+
         stock_frame = tk.Frame(main_frame, pady=5)
         stock_frame.grid(row=0, column=0, sticky="w")
         tk.Label(stock_frame, text="Select stock:").grid(row=0, column=0, padx=5, pady=5)
@@ -40,6 +39,7 @@ class App:
         self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024,2025], state="readonly")
         self.year_entry.grid(row=0, column=1, padx=5)
         self.year_entry.set(current_year)
+
 
         tk.Label(date_frame, text="Select Month:").grid(row=0, column=2, padx=5, pady=5)
         self.month_entry = ttk.Combobox(date_frame, values=list(range(1, 13)), state="readonly")
@@ -140,7 +140,6 @@ class App:
 
             # Handle sentiment data
             if sentiment_data !=None:
-                
                 sentiment, urls = sentiment_data
                 tk.Label(day_window, text=f"Sentiment Score: {sentiment:.2f}", font=("Arial", 12)).pack(pady=2)
                 if urls:
@@ -225,4 +224,3 @@ if __name__ == "__main__":
     app = App(root)
     # app.get_news_links_for_month(2024,10)
     root.mainloop()
-
