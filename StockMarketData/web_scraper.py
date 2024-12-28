@@ -9,6 +9,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
+from datetime import datetime
+
 #https://electrek.co/?s=tesla
 
 class web_scraper:
@@ -20,6 +22,7 @@ class web_scraper:
         self.json_file_path_earnings = f"json_folder\\stock_earnings.json"
         self.json_file_path_cpi = f"json_folder\\cpi.json"
         self.driver = None
+        self.bitcoin_data = "json_folder\\bitcoin_address_data.json"
 
     def setup_driver(self):
         """Sets up the headless Chrome driver."""
@@ -28,6 +31,7 @@ class web_scraper:
         service = Service(executable_path="chromedriver.exe")  # Update with your chromedriver path
         self.driver = webdriver.Chrome(service=service, options=options)
         return self.driver
+    
     def scrape_cpi(self):
         self.setup_driver()
         self.driver.get(self.cpi_url)
@@ -48,7 +52,7 @@ class web_scraper:
             print(f"Error loading CPI page: {e}")
             self.driver.quit()
             return []
-
+        
         # Select rows with CPI data from both odd and even rows
         cpi_rows = soup.select(".release-list-odd-row, .release-list-even-row")
         new_cpi = []
@@ -79,6 +83,7 @@ class web_scraper:
             print("No new CPI dates found")
 
         return new_cpi
+
 
     def scrape_earnings(self):
         """Scrapes earnings dates and saves them to a JSON file."""
@@ -113,6 +118,7 @@ class web_scraper:
             # Skip if this date is already in existing_earnings
             if any(item['date'] == date_text for item in existing_earnings):
                 continue
+            
 
             # Append new earnings data
             new_earnings.append({
@@ -196,10 +202,114 @@ class web_scraper:
             print("No recent news")
 
         return new_links
+    
+
+    def scrape_bitcoin_address(self):
+        """
+        Scrapes data from the specified Bitcoin address page that is the bitcoin address of CLSK.
+        The target count is the number of days between today and December 4th 2024.
+        """
+        # Calculate target_count as the number of days from today to December 4th
+        today = datetime.now()
+        cutoff_date = datetime(2024, 12, 4)
+
+        days_difference = (today - cutoff_date).days
+        if days_difference <= 0:
+            print("December 4th has not passed yet. No data to scrape.")
+            return []
+        target_count = days_difference
+        print(f"Target count (days difference): {target_count}")
+
+        url = "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab"
+        json_file_path = self.bitcoin_data
+        self.setup_driver()
+        self.driver.get(url)
+
+        # Load existing data if available
+        existing_data = []
+        if os.path.exists(json_file_path):
+            with open(json_file_path, "r", encoding="utf-8") as file:
+                existing_data = json.load(file)
+                
+        total_clicks = 0
+        while len(existing_data) < target_count:
+            # Otherwise, click "Load More Transactions" to load more data
+            try:
+                load_more_button = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='button'][class*='btn-outline-secondary'][onclick*='getTransactions']"))
+                )
+                self.driver.execute_script("arguments[0].click();", load_more_button)
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "#txs tr:not(#loading)"))
+                )
+                total_clicks += 1
+            except Exception as e:
+                print(f"Error clicking the button or loading more data: {e}")
+                break
+            # Parse the current page to get new data
+            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+            table_body = soup.find("tbody", id="txs")
+            if not table_body:
+                print("No table body with ID 'txs' found")
+                break
+
+            elements = table_body.find_all("td", class_="text-end text-success")
+            new_data = []
+
+            for element in elements:
+                data_text = element.get_text(strip=True)
+
+                # Skip if the data is already in the existing data
+                if any(item['btc_mined'] == data_text for item in existing_data):
+                    continue
+
+                # Append new data
+                new_data.append({"btc_mined": data_text})
+
+            # Add new data to the existing list
+            existing_data.extend(new_data)
+
+            # Save the updated data
+            with open(json_file_path, "w", encoding="utf-8") as file:
+                json.dump(existing_data, file, indent=4, ensure_ascii=False)
+
+            # If the target count is reached, stop
+            if len(existing_data) >= target_count:
+                print(f"Target count of {target_count} data points reached.")
+                break
+
+        print(f"Total clicks performed: {total_clicks}")
+        self.driver.quit()
+        return existing_data
+
+    def calculate_total_btc(self,json_data):
+         # Load Bitcoin data from the file
+        dec_3_2024 = 20.97159456
+        dec_2_2024 = 21.31648126
+        dec_1_2024 = 20.94454838
+        nov_30_2024 = 9297
+        total_btc_as_of_december_4th_2024 = nov_30_2024+dec_1_2024+dec_2_2024+dec_3_2024
+        # Source: https://investors.cleanspark.com/news/news-details/2024/CleanSpark-Releases-November-2024-Bitcoin-Mining-Update/default.aspx
+        bitcoin_data = []
+        if os.path.exists(json_data):
+            with open(json_data, "r", encoding="utf-8") as file:
+                bitcoin_data = json.load(file)
+
+        total_sum = total_btc_as_of_december_4th_2024
+
+        for item in bitcoin_data:
+            # Convert the 'data' string to a float and add it to the total
+            try:
+                value = float(item['btc_mined'].replace('+', ''))
+                total_sum += value
+            except ValueError:
+                print(f"Skipping invalid value: {item['btc_mined']}")
+        return total_sum
 
 # Only execute when this script is run directly
 if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
-    scraper.scrape_articles()
+    scraper.scrape_bitcoin_address()
+    print(scraper.calculate_total_btc(scraper.bitcoin_data))

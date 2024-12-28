@@ -39,8 +39,6 @@ class App:
         self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024,2025], state="readonly")
         self.year_entry.grid(row=0, column=1, padx=5)
         self.year_entry.set(current_year)
-
-
         tk.Label(date_frame, text="Select Month:").grid(row=0, column=2, padx=5, pady=5)
         self.month_entry = ttk.Combobox(date_frame, values=list(range(1, 13)), state="readonly")
         self.month_entry.grid(row=0, column=3, padx=5)
@@ -51,13 +49,6 @@ class App:
         self.show_button = tk.Button(button_frame, text="Show Calendar", command=self.show_calendar)
         self.show_button.grid(row=0, column=0, padx=5, pady=5)
 
-        self.prev_button = tk.Button(button_frame, text="Previous Month", command=self.prev_month)
-        self.prev_button.grid(row=0, column=1, padx=5, pady=5)
-
-        self.next_button = tk.Button(button_frame, text="Next Month", command=self.next_month)
-        self.next_button.grid(row=0, column=2, padx=5, pady=5)
-
-        # Download and Fetch news buttons
         action_frame = tk.Frame(main_frame, pady=10)
         action_frame.grid(row=3, column=0, sticky="w")
         self.download_button = tk.Button(action_frame, text="Download", command=self.download_calendar)
@@ -120,7 +111,6 @@ class App:
         else:
             links = []
 
-
         if isinstance(data, pd.Series):
             # Extract the required data and convert them to standard Python types
             open_price = float(data['Open'])
@@ -137,7 +127,6 @@ class App:
             tk.Label(day_window, text=f"Close Price: ${close_price:,.2f}", font=("Arial", 12)).pack(pady=2)
             tk.Label(day_window, text=f"Volume: {volume:,}", font=("Arial", 12)).pack(pady=2)
             
-
             # Handle sentiment data
             if sentiment_data !=None:
                 sentiment, urls = sentiment_data
@@ -154,13 +143,14 @@ class App:
                     link = tk.Label(day_window, text=lnk, font=("Arial", 10), fg="blue", cursor="hand2")
                     link.pack(pady=1)
                     link.bind("<Button-1>", lambda e, url=lnk: webbrowser.get("edge").open(url))
-
+                    
             else:
                 if stock=="CLSK":
                     for lnk in links:
                         link = tk.Label(day_window, text=lnk, font=("Arial", 10), fg="blue", cursor="hand2")
                         link.pack(pady=1)
                         link.bind("<Button-1>", lambda e, url=lnk: webbrowser.get("edge").open(url))
+    
     def fetch_news(self,stock):
          # Fetch the selected stock dynamically from the dropdown
         stock = str(self.stock_entry.get())
@@ -174,30 +164,6 @@ class App:
         # Scrape earnings for any stock
         self.web_scraper_instance.scrape_earnings()
 
-    def update_calendar(self):
-        """Updates the year and month fields in the dropdowns."""
-        self.year_entry.set(self.current_year)
-        self.month_entry.set(self.current_month)
-        self.show_calendar()  # Refresh the calendar view
-
-    def prev_month(self):
-        """Move to the previous month."""
-        if self.current_month == 1:
-            self.current_month = 12
-            self.current_year -= 1
-        else:
-            self.current_month -= 1
-        self.update_calendar()
-
-    def next_month(self):
-        """Move to the next month."""
-        if self.current_month == 12:
-            self.current_month = 1
-            self.current_year += 1
-        else:
-            self.current_month += 1
-        self.update_calendar()
-
     def show_calendar(self): 
         year = int(self.year_entry.get())
         month = int(self.month_entry.get())
@@ -207,7 +173,6 @@ class App:
         self.stock_reader_instance.create_month_calendar_view(year, month, stock, download=False)
 
     def download_calendar(self):
-
         year = int(self.year_entry.get())
         month = int(self.month_entry.get())
         stock = str(self.stock_entry.get())
