@@ -1,6 +1,7 @@
 # earnings_scraper.py
 
 import json
+from collections import defaultdict
 import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -381,11 +382,35 @@ class web_scraper:
             except ValueError:
                 print(f"Skipping invalid value: {item['btc_mined']}")
         return total_sum
+    
+    def calculate_btc_mined_per_month(self, json_file_path):
 
+        if os.path.exists(json_file_path):
+            with open(json_file_path, "r", encoding="utf-8") as file:
+                data = json.load(file)
+        
+        btc_by_month = defaultdict(float)
+        for entry in data:
+        # Extract month from the date
+            date = datetime.strptime(entry["date"], "%Y-%m-%d %H:%M:%S")
+            month = date.strftime("%Y-%m")  # Format as "YYYY-MM"
+            btc_mined = float(entry["btc_mined"])  # Convert btc_mined to float
+            btc_by_month[month] += btc_mined
+
+        # Print the results
+        print("Bitcoin mined per month:")
+        for month, total_btc in btc_by_month.items():
+            if month == "2024-08":
+                #Subtract the bitcoins that were bought in August 2024 and September 2023.
+                total_btc-=1145.
+            elif month == "2023-09":
+                total_btc-=375*5+200
+            print(f"{month}: {total_btc:.8f}")
 # Only execute when this script is run directly
 if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
     scraper.scrape_bitcoin_address()
-    print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
+    #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
+    print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
