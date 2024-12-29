@@ -22,7 +22,8 @@ class web_scraper:
         self.json_file_path_earnings = f"json_folder\\stock_earnings.json"
         self.json_file_path_cpi = f"json_folder\\cpi.json"
         self.driver = None
-        self.bitcoin_data = "json_folder\\bitcoin_address_data.json"
+        self.bitcoin_data = "json_folder\\bitcoin_address_data_all_time.json"
+        self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
 
     def setup_driver(self):
         """Sets up the headless Chrome driver."""
@@ -203,25 +204,21 @@ class web_scraper:
 
         return new_links
     
-
     def scrape_bitcoin_address(self):
         """
-        Scrapes data from the specified Bitcoin address page that is the bitcoin address of CLSK.
-        The target count is the number of days between today and December 4th 2024.
-        """
+        Scrapes data from the bitcoin address of CLSK that is more recent than the cutoff date."""
+        from datetime import datetime
+
         # Calculate target_count as the number of days from today to December 4th
         today = datetime.now()
         cutoff_date = datetime(2024, 12, 4)
 
-        days_difference = (today - cutoff_date).days
-        if days_difference <= 0:
-            print("December 4th has not passed yet. No data to scrape.")
-            return []
+        days_difference = (today - cutoff_date).days+1
         target_count = days_difference
         print(f"Target count (days difference): {target_count}")
 
         url = "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab"
-        json_file_path = self.bitcoin_data
+        json_file_path = self.bitcoin_data_2024
         self.setup_driver()
         self.driver.get(url)
 
@@ -230,41 +227,54 @@ class web_scraper:
         if os.path.exists(json_file_path):
             with open(json_file_path, "r", encoding="utf-8") as file:
                 existing_data = json.load(file)
-                
+                    
         total_clicks = 0
         while len(existing_data) < target_count:
-            # Otherwise, click "Load More Transactions" to load more data
+            # Click "Load More Transactions" to load more data
             try:
-                load_more_button = WebDriverWait(self.driver, 10).until(
+                load_more_button = WebDriverWait(self.driver, 50).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='button'][class*='btn-outline-secondary'][onclick*='getTransactions']"))
                 )
                 self.driver.execute_script("arguments[0].click();", load_more_button)
-                WebDriverWait(self.driver, 10).until(
+                WebDriverWait(self.driver, 50).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "#txs tr:not(#loading)"))
                 )
                 total_clicks += 1
             except Exception as e:
                 print(f"Error clicking the button or loading more data: {e}")
                 break
+
             # Parse the current page to get new data
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
             table_body = soup.find("tbody", id="txs")
             if not table_body:
                 print("No table body with ID 'txs' found")
                 break
-
-            elements = table_body.find_all("td", class_="text-end text-success")
+                
+            rows = table_body.find_all("tr")
             new_data = []
 
-            for element in elements:
-                data_text = element.get_text(strip=True)
+            for row in rows:
+                cells = row.find_all("td")
+                if len(cells) < 4:  # Ensure there are enough cells in the row
+                    continue
+                date_text = cells[1].get_text(strip=True)
+                row_date = datetime.strptime(date_text.split()[0], "%Y-%m-%d")  # Parse the date 
+                btc_mined = cells[3].get_text(strip=True)
+                value_class = cells[3].get("class", [])
+                # Skip the value if it is before the cutoff date
+                if row_date < cutoff_date:
+                    continue
+                # We skip the negative btc mined amounts.
+                if "text-danger" in value_class:
+                    continue
 
                 # Skip if the data is already in the existing data
-                if any(item['btc_mined'] == data_text for item in existing_data):
+                if any(item['btc_mined'] == btc_mined for item in existing_data):
                     continue
 
                 # Append new data
-                new_data.append({"btc_mined": data_text})
+                new_data.append({"date": str(date_text),"btc_mined": btc_mined})
 
             # Add new data to the existing list
             existing_data.extend(new_data)
@@ -277,10 +287,80 @@ class web_scraper:
             if len(existing_data) >= target_count:
                 print(f"Target count of {target_count} data points reached.")
                 break
-
         print(f"Total clicks performed: {total_clicks}")
         self.driver.quit()
         return existing_data
+    
+    def scrape_bitcoin_address_all_time(self):
+        """Scrapes data from the specified Bitcoin address page, including all available transactions."""
+        url = "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab"
+        json_file_path = self.bitcoin_data
+
+        # Setup driver
+        self.setup_driver()
+        self.driver.get(url)
+
+        # Load existing data if available
+        existing_data = []
+        if os.path.exists(json_file_path):
+            with open(json_file_path, "r", encoding="utf-8") as file:
+                existing_data = json.load(file)
+        new_data = []
+        while True:
+            try:
+                # Click the "Load More Transactions" button
+                load_more_button = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='button'][class*='btn-outline-secondary'][onclick*='getTransactions']"))
+                )
+                self.driver.execute_script("arguments[0].click();", load_more_button)
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "#txs tr:not(#loading)"))
+                )
+            except Exception:
+                # Break the loop if the button is not found or not clickable
+                print("Button was not found or no more data to load.")
+                break
+
+        # Parse the current page after each button click
+        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        table_body = soup.find("tbody", id="txs")
+        if not table_body:
+            print("No table body with ID 'txs' found")
+            return
+
+        rows = table_body.find_all("tr")
+        for row in rows:
+            cells = row.find_all("td")
+            if len(cells) < 4:  # Ensure there are enough cells in the row
+                continue
+            date_text = cells[1].get_text(strip=True)
+            btc_mined = cells[3].get_text(strip=True)
+            value_class = cells[3].get("class", [])
+
+            if date_text=="":
+                continue
+             # Skip negative btc mined amounts
+
+            if "text-danger" in value_class:
+                continue
+
+            # Skip if the data is already in the existing data
+            if any(item['btc_mined'] == btc_mined for item in existing_data):
+                continue
+
+            # Append new data
+            new_data.append({"date": date_text, "btc_mined": btc_mined})
+
+        # Add new data to the existing list
+        existing_data.extend(new_data)
+
+        # Save the updated data
+        with open(json_file_path, "w", encoding="utf-8") as file:
+            json.dump(existing_data, file, indent=4, ensure_ascii=False)
+
+        self.driver.quit()
+        return existing_data
+
 
     def calculate_total_btc(self,json_data):
          # Load Bitcoin data from the file
@@ -311,5 +391,5 @@ if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
-    scraper.scrape_bitcoin_address()
-    print(scraper.calculate_total_btc(scraper.bitcoin_data))
+    scraper.scrape_bitcoin_address_all_time()
+    #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))

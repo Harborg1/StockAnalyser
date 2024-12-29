@@ -13,7 +13,6 @@ from web_scraper import web_scraper
 class App:
     def __init__(self, root):
         self.stock_reader_instance = stock_reader(day_details_callback=self.open_day_details_window)
-        self.web_scraper_instance = None
         self.path = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
         self.root = root
         self.root.title("Stock Data Calendar Viewer")
@@ -32,6 +31,7 @@ class App:
         self.stock_entry = ttk.Combobox(stock_frame, values=["SPY", "TSLA", "CLSK", "NVDA"], state="readonly")
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
+        self.web_scraper_instance = web_scraper(str(self.stock_entry.get()))
         # Year and Month selection
         date_frame = tk.Frame(main_frame, pady=5)
         date_frame.grid(row=1, column=0, sticky="w")
@@ -95,6 +95,7 @@ class App:
 
         """Opens a new window to show detailed stock data for the selected day."""
 
+        btc_mined = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data)
         day_window = tk.Toplevel(self.root)
         day_window.title(f"Stock Details for {stock} - {year}-{month:02d}-{day:02d}")
         #     # Add dummy button
@@ -126,6 +127,8 @@ class App:
             tk.Label(day_window, text=f"Low Price: ${low_price:,.2f}", font=("Arial", 12)).pack(pady=2)
             tk.Label(day_window, text=f"Close Price: ${close_price:,.2f}", font=("Arial", 12)).pack(pady=2)
             tk.Label(day_window, text=f"Volume: {volume:,}", font=("Arial", 12)).pack(pady=2)
+            if stock=="CLSK":
+             tk.Label(day_window, text=f"BTC mined: {btc_mined:,}", font=("Arial", 12)).pack(pady=2)
             
             # Handle sentiment data
             if sentiment_data !=None:
@@ -154,8 +157,6 @@ class App:
     def fetch_news(self,stock):
          # Fetch the selected stock dynamically from the dropdown
         stock = str(self.stock_entry.get())
-
-        self.web_scraper_instance = web_scraper(stock)
 
         # Only scrape articles for CLSK
         if stock == "CLSK":
