@@ -95,7 +95,7 @@ class App:
 
         """Opens a new window to show detailed stock data for the selected day."""
 
-        btc_mined = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data)
+        btc_mined = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data_2024)
         day_window = tk.Toplevel(self.root)
         day_window.title(f"Stock Details for {stock} - {year}-{month:02d}-{day:02d}")
         #     # Add dummy button
