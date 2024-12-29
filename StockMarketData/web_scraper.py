@@ -208,7 +208,6 @@ class web_scraper:
     def scrape_bitcoin_address(self):
         """
         Scrapes data from the bitcoin address of CLSK that is more recent than the cutoff date."""
-        from datetime import datetime
 
         # Calculate target_count as the number of days from today to December 4th
         today = datetime.now()
