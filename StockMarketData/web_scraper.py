@@ -211,7 +211,7 @@ class web_scraper:
 
         # Calculate target_count as the number of days from today to December 4th
         today = datetime.now()
-        cutoff_date = datetime(2024, 12, 4)
+        cutoff_date = datetime(2024, 12, 1)
 
         days_difference = (today - cutoff_date).days+1
         target_count = days_difference
@@ -364,18 +364,14 @@ class web_scraper:
 
     def calculate_total_btc(self,json_data):
          # Load Bitcoin data from the file
-        dec_3_2024 = 20.97159456
-        dec_2_2024 = 21.31648126
-        dec_1_2024 = 20.94454838
         nov_30_2024 = 9297
-        total_btc_as_of_december_4th_2024 = nov_30_2024+dec_1_2024+dec_2_2024+dec_3_2024
         # Source: https://investors.cleanspark.com/news/news-details/2024/CleanSpark-Releases-November-2024-Bitcoin-Mining-Update/default.aspx
         bitcoin_data = []
         if os.path.exists(json_data):
             with open(json_data, "r", encoding="utf-8") as file:
                 bitcoin_data = json.load(file)
 
-        total_sum = total_btc_as_of_december_4th_2024
+        total_sum = nov_30_2024
 
         for item in bitcoin_data:
             # Convert the 'data' string to a float and add it to the total
@@ -391,5 +387,5 @@ if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
-    scraper.scrape_bitcoin_address_all_time()
-    #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
+    scraper.scrape_bitcoin_address()
+    print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
