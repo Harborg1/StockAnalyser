@@ -221,8 +221,6 @@ class web_scraper:
         json_file_path = self.bitcoin_data_2024
         self.setup_driver()
         self.driver.get(url)
-
-        # Load existing data if available
         existing_data = []
             # Delete the existing JSON file if it exists
         if os.path.exists(json_file_path):
@@ -300,12 +298,10 @@ class web_scraper:
         # Setup driver
         self.setup_driver()
         self.driver.get(url)
-
-        # Load existing data if available
         existing_data = []
         if os.path.exists(json_file_path):
-            with open(json_file_path, "r", encoding="utf-8") as file:
-                existing_data = json.load(file)
+            os.remove(json_file_path)
+
         new_data = []
         while True:
             try:
@@ -342,13 +338,12 @@ class web_scraper:
                 continue
              # Skip negative btc mined amounts
 
-            if "text-danger" in value_class:
-                continue
-
-            # Skip if the data is already in the existing data
+             # Skip if the data is already in the existing data
             if any(item['btc_mined'] == btc_mined for item in existing_data):
                 continue
 
+            if "text-danger" in value_class:
+                continue
             # Append new data
             new_data.append({"date": date_text, "btc_mined": btc_mined})
 
@@ -402,7 +397,7 @@ class web_scraper:
         for month, total_btc in btc_by_month.items():
             if month == "2024-08":
                 #Subtract the bitcoins that were bought in August 2024 and September 2023.
-                total_btc-=1145.
+                total_btc-=1145
             elif month == "2023-09":
                 total_btc-=375*5+200
             print(f"{month}: {total_btc:.8f}")
