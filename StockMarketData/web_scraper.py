@@ -224,9 +224,10 @@ class web_scraper:
 
         # Load existing data if available
         existing_data = []
+            # Delete the existing JSON file if it exists
         if os.path.exists(json_file_path):
-            with open(json_file_path, "r", encoding="utf-8") as file:
-                existing_data = json.load(file)
+            os.remove(json_file_path)
+            print(f"Deleted existing file: {json_file_path}")
                     
         total_clicks = 0
         while len(existing_data) < target_count:
@@ -309,11 +310,11 @@ class web_scraper:
         while True:
             try:
                 # Click the "Load More Transactions" button
-                load_more_button = WebDriverWait(self.driver, 10).until(
+                load_more_button = WebDriverWait(self.driver, 20).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='button'][class*='btn-outline-secondary'][onclick*='getTransactions']"))
                 )
                 self.driver.execute_script("arguments[0].click();", load_more_button)
-                WebDriverWait(self.driver, 10).until(
+                WebDriverWait(self.driver, 20).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "#txs tr:not(#loading)"))
                 )
             except Exception:
@@ -411,5 +412,6 @@ if __name__ == "__main__":
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
     scraper.scrape_bitcoin_address()
+    #scraper.scrape_bitcoin_address_all_time()
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
-    print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
+    #print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
