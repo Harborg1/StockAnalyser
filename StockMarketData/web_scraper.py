@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -306,11 +307,11 @@ class web_scraper:
         while True:
             try:
                 # Click the "Load More Transactions" button
-                load_more_button = WebDriverWait(self.driver, 20).until(
+                load_more_button = WebDriverWait(self.driver, 50).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='button'][class*='btn-outline-secondary'][onclick*='getTransactions']"))
                 )
                 self.driver.execute_script("arguments[0].click();", load_more_button)
-                WebDriverWait(self.driver, 20).until(
+                WebDriverWait(self.driver, 50).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "#txs tr:not(#loading)"))
                 )
             except Exception:
@@ -398,15 +399,37 @@ class web_scraper:
             if month == "2024-08":
                 #Subtract the bitcoins that were bought in August 2024 and September 2023.
                 total_btc-=1145
+                btc_by_month[month]-=1145
             elif month == "2023-09":
                 total_btc-=375*5+200
-            print(f"{month}: {total_btc:.8f}")
+                btc_by_month[month]-=375*5+200
+            #print(f"{month}: {total_btc:.8f}")
+
+        return btc_by_month   
+
+    def plot_btc_histogram(self):
+        btc_by_month = self.calculate_btc_mined_per_month(self.bitcoin_data)
+        # Sort the dictionary by month
+        sorted_months = sorted(btc_by_month.keys())
+        btc_values = [btc_by_month[month] for month in sorted_months]
+
+        # Create the histogram
+        plt.figure(figsize=(10, 6))
+        plt.bar(sorted_months, btc_values, width=0.6, align='center', alpha=0.7)
+        plt.xticks(rotation=45, ha='right')
+        plt.xlabel("(Year-Month)")
+        plt.ylabel("Bitcoin Mined")
+        plt.title("Bitcoin Mined Per Month")
+        plt.tight_layout()
+        plt.show()
 # Only execute when this script is run directly
 if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
-    scraper.scrape_bitcoin_address()
+    #scraper.scrape_bitcoin_address()
     #scraper.scrape_bitcoin_address_all_time()
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
-    #print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
+    # print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
+    # print(scraper.plot_btc_histogram()
+    scraper.scrape_fomc_meetings()

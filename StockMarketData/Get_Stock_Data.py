@@ -215,11 +215,14 @@ class stock_reader:
 
         cpi_data_all = self.get_json_data("cpi.json")
 
-
+        fomc_data_all = self.get_json_data("fomc.json")
         cpi_data = {
             pd.Timestamp(item["date"]) for item in cpi_data_all
         }
         
+        fomc_data  = {
+            pd.Timestamp(item["date"]) for item in fomc_data_all
+        }
         # Create a figure and axis
         fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -307,11 +310,18 @@ class stock_reader:
                             ha='center', va='center', fontsize=5, weight='bold', color='black')
                     
                 elif current_date in cpi_data:
-                     # Place a grey square for the holiday
+                     # Place a blue square for CPI data
                     day_rect.set_facecolor("blue")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
                     ax.text(day_idx + 0.5, -week_idx - 0.5, "CPI data date",
                             ha='center', va='center', fontsize=5, weight='bold', color='black')
+                elif current_date in fomc_data:
+                    # Place a yellow square for FOMC data
+                    day_rect.set_facecolor("yellow")
+                    ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
+                    ax.text(day_idx + 0.5, -week_idx - 0.5, "FOMC meeting today or tomorrow",
+                            ha='center', va='center', fontsize=5, weight='bold', color='black')
+
                     
         if month==current_month:
             # Add grid lines
