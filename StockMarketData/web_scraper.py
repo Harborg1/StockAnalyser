@@ -427,9 +427,8 @@ if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
-    #scraper.scrape_bitcoin_address()
+    scraper.scrape_bitcoin_address()
     #scraper.scrape_bitcoin_address_all_time()
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
     # print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
     # print(scraper.plot_btc_histogram()
-    scraper.scrape_fomc_meetings()

@@ -28,7 +28,7 @@ class App:
         stock_frame = tk.Frame(main_frame, pady=5)
         stock_frame.grid(row=0, column=0, sticky="w")
         tk.Label(stock_frame, text="Select stock:").grid(row=0, column=0, padx=5, pady=5)
-        self.stock_entry = ttk.Combobox(stock_frame, values=["SPY", "TSLA", "CLSK", "NVDA"], state="readonly")
+        self.stock_entry = ttk.Combobox(stock_frame, values=["MSTR", "TSLA", "CLSK", "NVDA"], state="readonly")
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
         self.web_scraper_instance = web_scraper(str(self.stock_entry.get()))
@@ -98,10 +98,6 @@ class App:
         btc_mined = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data_2024)
         day_window = tk.Toplevel(self.root)
         day_window.title(f"Stock Details for {stock} - {year}-{month:02d}-{day:02d}")
-        #     # Add dummy button
-        # dummy_button = tk.Button(day_window, text="Dummy Button", command=lambda: print("Dummy button clicked!"))
-        # dummy_button.pack(pady=10)
-        # Get the data for the selected day
         data = self.stock_reader_instance.get_data_for_day(year, month, day, stock)
         start_date=f"{year}-{month}-{day}"
         sentiment_data = self.stock_reader_instance.get_sentiment(stock, start_date,start_date)
@@ -129,6 +125,9 @@ class App:
             tk.Label(day_window, text=f"Volume: {volume:,}", font=("Arial", 12)).pack(pady=2)
             if stock=="CLSK":
              tk.Label(day_window, text=f"BTC mined: {btc_mined:,}", font=("Arial", 12)).pack(pady=2)
+             link = tk.Label(day_window, text="Click me to see the total network hashrate", font=("Arial", 10), fg="blue", cursor="hand2")
+             link.pack(pady=1)
+             link.bind("<Button-1>", lambda e, url="https://minerstat.com/coin/BTC/network-hashrate": webbrowser.get("edge").open(url))
             
             # Handle sentiment data
             if sentiment_data !=None:
@@ -146,14 +145,7 @@ class App:
                     link = tk.Label(day_window, text=lnk, font=("Arial", 10), fg="blue", cursor="hand2")
                     link.pack(pady=1)
                     link.bind("<Button-1>", lambda e, url=lnk: webbrowser.get("edge").open(url))
-                    
-            else:
-                if stock=="CLSK":
-                    for lnk in links:
-                        link = tk.Label(day_window, text=lnk, font=("Arial", 10), fg="blue", cursor="hand2")
-                        link.pack(pady=1)
-                        link.bind("<Button-1>", lambda e, url=lnk: webbrowser.get("edge").open(url))
-    
+                
     def fetch_news(self,stock):
          # Fetch the selected stock dynamically from the dropdown
         stock = str(self.stock_entry.get())

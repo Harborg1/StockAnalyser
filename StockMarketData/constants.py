@@ -5,6 +5,7 @@ class DateConstants:
         if year == 2025:
             stock_market_holidays = {
                 pd.Timestamp(year=2025, month=1, day=1): "New Year's Day",
+                 pd.Timestamp(year=2025, month=1, day=9): "Closed in honor of Jimmy Carter",
                 pd.Timestamp(year=2025, month=1, day=20): "Martin Luther King Jr. Day",
                 pd.Timestamp(year=2025, month=2, day=17): "Presidents' Day",
                 pd.Timestamp(year=2025, month=4, day=18): "Good Friday",
