@@ -21,8 +21,8 @@ class web_scraper:
         self.stock_name = stock_name.upper()
         self.earnings_url = f'https://www.nasdaq.com/market-activity/stocks/{self.stock_name}/earnings'
         self.cpi_url = "https://www.bls.gov/schedule/news_release/cpi.htm"
-        self.json_file_path_earnings = f"json_folder\\stock_earnings.json"
-        self.json_file_path_cpi = f"json_folder\\cpi.json"
+        self.json_file_path_earnings = "json_folder\\stock_earnings.json"
+        self.json_file_path_cpi = "json_folder\\cpi.json"
         self.driver = None
         self.bitcoin_data = "json_folder\\bitcoin_address_data_all_time.json"
         self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
