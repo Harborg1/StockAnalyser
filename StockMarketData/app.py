@@ -5,58 +5,118 @@ import tkinter as tk
 from tkinter import ttk            
 import tkinter as tk
 import pandas as pd
+import yfinance as yf
 import webbrowser
 import os
 import json
 from datetime import datetime
 from web_scraper import web_scraper
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 class App:
     def __init__(self, root):
         self.stock_reader_instance = stock_reader(day_details_callback=self.open_day_details_window)
         self.path = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
         self.root = root
         self.root.title("Stock Data Calendar Viewer")
-        current_date = datetime.now()
-        current_month = current_date.month
-        current_year = current_date.year
-
         # Main frame for the layout
-        main_frame = tk.Frame(root, padx=10, pady=10)
-        main_frame.grid(row=0, column=0)
-        # Stock selection
+        self.main_frame = tk.Frame(root, padx=10, pady=10)
+        self.main_frame.grid(row=0, column=0)
+        self.populate_main_screen()
 
-        stock_frame = tk.Frame(main_frame, pady=5)
+
+    def populate_main_screen(self):
+        """Populates the main screen with the original content."""
+        # Clear the main frame
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+
+        # Stock selection
+        stock_frame = tk.Frame(self.main_frame, pady=5)
         stock_frame.grid(row=0, column=0, sticky="w")
         tk.Label(stock_frame, text="Select stock:").grid(row=0, column=0, padx=5, pady=5)
-        self.stock_entry = ttk.Combobox(stock_frame, values=["MSTR", "TSLA", "CLSK", "NVDA"], state="readonly")
+        self.stock_entry = ttk.Combobox(stock_frame, values=["NVO", "TSLA", "CLSK", "NVDA"], state="readonly")
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
         self.web_scraper_instance = web_scraper(str(self.stock_entry.get()))
+
+        self.navigate_button = tk.Button(
+        stock_frame, text="→", font=("Arial", 16), command=self.re_populate_screen)
+        self.navigate_button.grid(row=0, column=5, padx=2, pady=2)
+
         # Year and Month selection
-        date_frame = tk.Frame(main_frame, pady=5)
+        date_frame = tk.Frame(self.main_frame, pady=5)
         date_frame.grid(row=1, column=0, sticky="w")
         tk.Label(date_frame, text="Select Year:").grid(row=0, column=0, padx=5, pady=5)
-        self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024,2025], state="readonly")
+        self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024, 2025], state="readonly")
         self.year_entry.grid(row=0, column=1, padx=5)
-        self.year_entry.set(current_year)
+        self.year_entry.set(datetime.now().year)
         tk.Label(date_frame, text="Select Month:").grid(row=0, column=2, padx=5, pady=5)
         self.month_entry = ttk.Combobox(date_frame, values=list(range(1, 13)), state="readonly")
         self.month_entry.grid(row=0, column=3, padx=5)
-        self.month_entry.set(current_month)
+        self.month_entry.set(datetime.now().month)
+
         # Buttons for calendar actions
-        button_frame = tk.Frame(main_frame, pady=10)
+        button_frame = tk.Frame(self.main_frame, pady=10)
         button_frame.grid(row=2, column=0, sticky="w")
         self.show_button = tk.Button(button_frame, text="Show Calendar", command=self.show_calendar)
         self.show_button.grid(row=0, column=0, padx=5, pady=5)
 
-        action_frame = tk.Frame(main_frame, pady=10)
+        action_frame = tk.Frame(self.main_frame, pady=10)
         action_frame.grid(row=3, column=0, sticky="w")
         self.download_button = tk.Button(action_frame, text="Download", command=self.download_calendar)
         self.download_button.grid(row=0, column=0, padx=5, pady=5)
-
-        self.stock = self.stock_entry.get()
-        self.fetch_news_button = tk.Button(action_frame, text="Fetch news", command=lambda: self.fetch_news(self.stock))
+        self.fetch_news_button = tk.Button(action_frame, text="Fetch news", command=lambda: self.fetch_news(self.stock_entry))
         self.fetch_news_button.grid(row=0, column=1, padx=5, pady=5)
+
+    def re_populate_screen(self):
+        """Replaces the main screen with the second screen, showing portfolio details."""
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+
+        stocks = ["TSLA", "NVO", "NVDA"]
+
+        # Portfolio data
+        portfolio = {
+            stocks[0]: {"shares": 62, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
+            stocks[1]: {"shares": 66, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
+            stocks[2]: {"shares": 80, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},  
+        }
+
+        # Calculate portfolio value
+        total_value = sum(stock["shares"] * stock["price"] for stock in portfolio.values())
+
+
+         
+        # Back button (Top-left corner)
+        tk.Button(
+            self.main_frame, text="←", font=("Arial", 16), command=self.populate_main_screen
+        ).grid(row=0, column=0, sticky="w", padx=10, pady=10)  # Align to top-left corner
+        # Display portfolio value
+        tk.Label(
+            self.main_frame, 
+            text=f"Portfolio Value: ${total_value:,.2f}", 
+            font=("Arial", 16), 
+            fg="green"
+        ).grid(row=3, column=0)
+
+        # Prepare data for the pie chart
+        labels = portfolio.keys()
+        sizes = [stock["shares"] * stock["price"] for stock in portfolio.values()]
+        colors = ["#FF5733", "#33FF57", "#3357FF"]  # Assign unique colors for each stock
+
+        # Create the pie chart
+        fig, ax = plt.subplots(figsize=(4, 4))
+        ax.pie(
+            sizes, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors
+        )
+        ax.axis("equal")  # Equal aspect ratio ensures the pie chart is circular.
+
+        # Embed the chart in the Tkinter window
+        canvas = FigureCanvasTkAgg(fig, self.main_frame)
+        canvas.get_tk_widget().grid(row=6, column=0, pady=10)
+        # Close the figure after rendering to prevent multiple figures from being displayed
+        plt.close(fig)
 
     def get_news_links_for_month(self, year, month):
         try:
