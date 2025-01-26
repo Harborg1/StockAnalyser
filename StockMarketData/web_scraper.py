@@ -259,6 +259,8 @@ class web_scraper:
                 if len(cells) < 4:  # Ensure there are enough cells in the row
                     continue
                 date_text = cells[1].get_text(strip=True)
+                
+                if date_text == 'Unconfirmed!🚀': continue
                 row_date = datetime.strptime(date_text.split()[0], "%Y-%m-%d")  # Parse the date 
                 btc_mined = cells[3].get_text(strip=True)
                 value_class = cells[3].get("class", [])
@@ -432,3 +434,4 @@ if __name__ == "__main__":
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
     # print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
     # print(scraper.plot_btc_histogram()
+    

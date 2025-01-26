@@ -38,10 +38,9 @@ class App:
         self.stock_entry = ttk.Combobox(stock_frame, values=["NVO", "TSLA", "CLSK", "NVDA"], state="readonly")
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
-        self.web_scraper_instance = web_scraper(str(self.stock_entry.get()))
 
         self.navigate_button = tk.Button(
-        stock_frame, text="→", font=("Arial", 16), command=self.re_populate_screen)
+        stock_frame, text="→", font=("Arial", 12), command=self.re_populate_screen)
         self.navigate_button.grid(row=0, column=5, padx=2, pady=2)
 
         # Year and Month selection
@@ -66,7 +65,7 @@ class App:
         action_frame.grid(row=3, column=0, sticky="w")
         self.download_button = tk.Button(action_frame, text="Download", command=self.download_calendar)
         self.download_button.grid(row=0, column=0, padx=5, pady=5)
-        self.fetch_news_button = tk.Button(action_frame, text="Fetch news", command=lambda: self.fetch_news(self.stock_entry))
+        self.fetch_news_button = tk.Button(action_frame, text="Fetch news", command=lambda: self.fetch_news())
         self.fetch_news_button.grid(row=0, column=1, padx=5, pady=5)
 
     def re_populate_screen(self):
@@ -82,15 +81,11 @@ class App:
             stocks[1]: {"shares": 66, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
             stocks[2]: {"shares": 80, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},  
         }
-
         # Calculate portfolio value
         total_value = sum(stock["shares"] * stock["price"] for stock in portfolio.values())
-
-
-         
         # Back button (Top-left corner)
         tk.Button(
-            self.main_frame, text="←", font=("Arial", 16), command=self.populate_main_screen
+            self.main_frame, text="←", font=("Arial", 12), command=self.populate_main_screen
         ).grid(row=0, column=0, sticky="w", padx=10, pady=10)  # Align to top-left corner
         # Display portfolio value
         tk.Label(
@@ -206,10 +201,11 @@ class App:
                     link.pack(pady=1)
                     link.bind("<Button-1>", lambda e, url=lnk: webbrowser.get("edge").open(url))
                 
-    def fetch_news(self,stock):
+    def fetch_news(self):
          # Fetch the selected stock dynamically from the dropdown
         stock = str(self.stock_entry.get())
-
+        self.web_scraper_instance = web_scraper(stock)
+    
         # Only scrape articles for CLSK
         if stock == "CLSK":
             self.web_scraper_instance.scrape_articles()
