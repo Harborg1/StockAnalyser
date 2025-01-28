@@ -8,7 +8,7 @@ import json
 import calendar
 class stock_reader:
     def __init__(self, day_details_callback = None):
-
+        
         self.cache = {}
         self.date_cache =  {}
         self.monthly_date = {}
@@ -75,7 +75,6 @@ class stock_reader:
 
     def get_close_price(self, s, e, stock):
         data = self.download_data(s, e, stock)
-
         # Check if data is a DataFrame or error message
         if not data.empty:
             l_close = round(data['Close'], 2).tolist()

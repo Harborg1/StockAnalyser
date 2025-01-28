@@ -13,8 +13,7 @@ import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-#https://electrek.co/?s=tesla
-
+# https://googlechromelabs.github.io/chrome-for-testing/#stable
 class web_scraper:
     def __init__(self, stock_name):
         """Initialize with the stock name (ticker)."""
@@ -259,8 +258,8 @@ class web_scraper:
                 if len(cells) < 4:  # Ensure there are enough cells in the row
                     continue
                 date_text = cells[1].get_text(strip=True)
-                
-                if date_text == 'Unconfirmed!🚀': continue
+
+                #if date_text == 'Unconfirmed!🚀': continue
                 row_date = datetime.strptime(date_text.split()[0], "%Y-%m-%d")  # Parse the date 
                 btc_mined = cells[3].get_text(strip=True)
                 value_class = cells[3].get("class", [])
@@ -408,7 +407,7 @@ class web_scraper:
             #print(f"{month}: {total_btc:.8f}")
 
         return btc_by_month   
-
+    
     def plot_btc_histogram(self):
         btc_by_month = self.calculate_btc_mined_per_month(self.bitcoin_data)
         # Sort the dictionary by month
@@ -434,4 +433,3 @@ if __name__ == "__main__":
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
     # print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
     # print(scraper.plot_btc_histogram()
-    

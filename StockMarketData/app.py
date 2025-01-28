@@ -38,11 +38,12 @@ class App:
         self.stock_entry = ttk.Combobox(stock_frame, values=["NVO", "TSLA", "CLSK", "NVDA"], state="readonly")
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
+        
+        self.web_scraper_instance = web_scraper(self.stock_entry.get())
 
         self.navigate_button = tk.Button(
         stock_frame, text="→", font=("Arial", 12), command=self.re_populate_screen)
         self.navigate_button.grid(row=0, column=5, padx=2, pady=2)
-
         # Year and Month selection
         date_frame = tk.Frame(self.main_frame, pady=5)
         date_frame.grid(row=1, column=0, sticky="w")
@@ -74,7 +75,7 @@ class App:
             widget.destroy()
 
         stocks = ["TSLA", "NVO", "NVDA"]
-
+        
         # Portfolio data
         portfolio = {
             stocks[0]: {"shares": 62, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
@@ -205,7 +206,7 @@ class App:
          # Fetch the selected stock dynamically from the dropdown
         stock = str(self.stock_entry.get())
         self.web_scraper_instance = web_scraper(stock)
-    
+
         # Only scrape articles for CLSK
         if stock == "CLSK":
             self.web_scraper_instance.scrape_articles()
