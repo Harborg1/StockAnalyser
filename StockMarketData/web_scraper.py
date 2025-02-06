@@ -231,11 +231,11 @@ class web_scraper:
         while len(existing_data) < target_count:
             # Click "Load More Transactions" to load more data
             try:
-                load_more_button = WebDriverWait(self.driver, 50).until(
+                load_more_button = WebDriverWait(self.driver, 100).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='button'][class*='btn-outline-secondary'][onclick*='getTransactions']"))
                 )
                 self.driver.execute_script("arguments[0].click();", load_more_button)
-                WebDriverWait(self.driver, 50).until(
+                WebDriverWait(self.driver, 100).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "#txs tr:not(#loading)"))
                 )
                 total_clicks += 1
@@ -433,3 +433,4 @@ if __name__ == "__main__":
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
     # print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
     # print(scraper.plot_btc_histogram()
+

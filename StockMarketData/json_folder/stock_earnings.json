@@ -11,6 +11,7 @@
         "date": "Feb 13, 2025",
         "stock": "CLSK"
     },
+    
     {
         "date": "Feb 26, 2025",
         "stock": "NVDA"
@@ -18,5 +19,9 @@
     {
         "date": "Jan 29, 2025",
         "stock": "TSLA"
+    },
+    {
+        "date": "Feb 06, 2025",
+        "stock": "CLSK"
     }
 ]

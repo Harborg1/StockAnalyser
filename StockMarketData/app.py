@@ -74,14 +74,20 @@ class App:
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
-        stocks = ["TSLA", "NVO", "NVDA"]
+        stocks = ["TSLA", "NVO", "NVDA", "CLSK","DKIGI.CO"]
+        usd_dkk = int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month,"DKK=X"))
         
         # Portfolio data
         portfolio = {
             stocks[0]: {"shares": 62, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
             stocks[1]: {"shares": 66, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
             stocks[2]: {"shares": 80, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},  
+            stocks[3]: {"shares": 410, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[3]))},
+            stocks[4]: {"shares": 993, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[4]))/usd_dkk
+            }
         }
+    
+
         # Calculate portfolio value
         total_value = sum(stock["shares"] * stock["price"] for stock in portfolio.values())
         # Back button (Top-left corner)
@@ -99,10 +105,10 @@ class App:
         # Prepare data for the pie chart
         labels = portfolio.keys()
         sizes = [stock["shares"] * stock["price"] for stock in portfolio.values()]
-        colors = ["#FF5733", "#33FF57", "#3357FF"]  # Assign unique colors for each stock
+        colors = ["#FF5733", "#33FF57", "#3357FF","#FF33A8","Brown"]  # Assign unique colors for each stock
 
         # Create the pie chart
-        fig, ax = plt.subplots(figsize=(4, 4))
+        fig, ax = plt.subplots(figsize=(5, 5))
         ax.pie(
             sizes, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors
         )
@@ -113,6 +119,7 @@ class App:
         canvas.get_tk_widget().grid(row=6, column=0, pady=10)
         # Close the figure after rendering to prevent multiple figures from being displayed
         plt.close(fig)
+
 
     def get_news_links_for_month(self, year, month):
         try:
@@ -196,16 +203,17 @@ class App:
                         link = tk.Label(day_window, text=url, font=("Arial", 10), fg="blue", cursor="hand2")
                         link.pack(pady=1)
                         link.bind("<Button-1>", lambda e, url=url: webbrowser.get("edge").open(url))
-                    
+
                 for lnk in links:
                     link = tk.Label(day_window, text=lnk, font=("Arial", 10), fg="blue", cursor="hand2")
                     link.pack(pady=1)
                     link.bind("<Button-1>", lambda e, url=lnk: webbrowser.get("edge").open(url))
                 
+            
     def fetch_news(self):
          # Fetch the selected stock dynamically from the dropdown
         stock = str(self.stock_entry.get())
-        self.web_scraper_instance = web_scraper(stock)
+        #self.web_scraper_instance = web_scraper(stock)
 
         # Only scrape articles for CLSK
         if stock == "CLSK":
