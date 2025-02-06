@@ -74,19 +74,20 @@ class App:
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
-        stocks = ["TSLA", "NVO", "NVDA", "CLSK","DKIGI.CO"]
+        stocks = ["TSLA", "NVDA", "CLSK","DKIGI.CO"]
         usd_dkk = int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month,"DKK=X"))
         
         # Portfolio data
         portfolio = {
-            stocks[0]: {"shares": 62, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
-            stocks[1]: {"shares": 66, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
-            stocks[2]: {"shares": 80, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},  
-            stocks[3]: {"shares": 410, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[3]))},
-            stocks[4]: {"shares": 993, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[4]))/usd_dkk
+            stocks[0]: {"shares": 70, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
+            stocks[1]: {"shares": 80, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
+            stocks[2]: {"shares": 250, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},
+            stocks[3]: {"shares": 993, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[3]))/usd_dkk
             }
+
         }
-    
+
+
 
         # Calculate portfolio value
         total_value = sum(stock["shares"] * stock["price"] for stock in portfolio.values())

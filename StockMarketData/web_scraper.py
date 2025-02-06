@@ -88,10 +88,9 @@ class web_scraper:
 
 
     def scrape_earnings(self):
-        """Scrapes earnings dates and saves them to a JSON file."""
+        """Scrapes earnings dates, updates changes, and saves them to a JSON file."""
         self.setup_driver()
         self.driver.get(self.earnings_url)
-
         # Load existing earnings data if available
         existing_earnings = []
         if os.path.exists(self.json_file_path_earnings):
@@ -109,36 +108,35 @@ class web_scraper:
             self.driver.quit()
             return []
 
-        # Select earnings dates elements
+        # Extract new earnings dates
         earnings_elements = soup.select(".announcement-date")
         new_earnings = []
+        updated_earnings = []
 
-        # Extract each earnings item
         for element in earnings_elements:
             date_text = element.get_text(strip=True)
-            
-            # Skip if this date is already in existing_earnings
-            if any(item['date'] == date_text for item in existing_earnings):
-                continue
-            
 
-            # Append new earnings data
-            new_earnings.append({
-                "date": date_text,
-                "stock": self.stock_name
-            })
+            # Check if the stock already has an earnings date recorded
+            existing_entry = next((item for item in existing_earnings if item['stock'] == self.stock_name), None)
+            
+            if existing_entry:
+                # If the date has changed, remove the old entry
+                if existing_entry['date'] != date_text:
+                    print(f"Earnings date changed for {self.stock_name}: {existing_entry['date']} -> {date_text}")
+                    existing_earnings = [item for item in existing_earnings if not (item['stock'] == self.stock_name)]
+                    updated_earnings.append({"date": date_text, "stock": self.stock_name})
+            else:
+                new_earnings.append({"date": date_text, "stock": self.stock_name})
 
         self.driver.quit()
 
-        # Save new earnings data if any found
-        if new_earnings:
-            with open(self.json_file_path_earnings, "w", encoding="utf-8") as file:
-                json.dump(existing_earnings + new_earnings, file, indent=4, ensure_ascii=False)
-            print(f"Added {len(new_earnings)} new earnings date(s) for {self.stock_name}")
-        else:
-            print("No new earnings dates found")
+        # Merge and save the updated earnings data
+        final_earnings = existing_earnings + updated_earnings + new_earnings
+        with open(self.json_file_path_earnings, "w", encoding="utf-8") as file:
+            json.dump(final_earnings, file, indent=4, ensure_ascii=False)
 
-        return new_earnings
+        print(f"Updated {len(updated_earnings)} earnings date(s) and added {len(new_earnings)} new earnings date(s) for {self.stock_name}")
+        return updated_earnings + new_earnings
     
     def scrape_articles(self):
 
@@ -427,10 +425,9 @@ class web_scraper:
 if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
-    # scraper.scrape_earnings()
+    scraper.scrape_earnings()
     scraper.scrape_bitcoin_address()
     #scraper.scrape_bitcoin_address_all_time()
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
     # print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
     # print(scraper.plot_btc_histogram()
-
