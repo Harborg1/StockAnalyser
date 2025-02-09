@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import sentiment as Sentiment
 import json
 import calendar
+from yfinance import __all__
 class stock_reader:
     def __init__(self, day_details_callback = None):
         
@@ -13,7 +14,9 @@ class stock_reader:
         self.date_cache =  {}
         self.monthly_date = {}
         self.day_details_callback = day_details_callback 
-    
+        self.start_date = "2024-01-01"
+        self.end_date = datetime.now().strftime("%Y-%m-%d")
+        
     def get_sentiment(self, stock, start_date, end_date):
 
         s = Sentiment.get_news_sentiment(stock, start_date, end_date)
@@ -64,6 +67,7 @@ class stock_reader:
             if not spy_ohlc_df.empty:
                 #print("Downloading data...")
                 self.cache[cache_key] = spy_ohlc_df
+                #print(spy_ohlc_df)
                 return spy_ohlc_df
             else:
                 print(f"No data found for {stock} between {s} and {e}.")
@@ -80,9 +84,25 @@ class stock_reader:
             l_close = round(data['Close'], 2).tolist()
             return l_close
         else:
-            # Return the error message or handle it (e.g., log or raise an error)
-            return data  # This will return the error message directly
-    
+            return data 
+        
+    def get_moving_average(self, s, e, stock, ma20):
+
+        # Download the data using the existing method
+        data = self.download_data(s, e, stock)
+        if data.empty:
+            return f"No data found for {stock} between {s} and {e}."
+
+        # Choose the window based on the ma20 flag
+        window = 20 if ma20 else 50
+
+        # Compute the rolling mean (moving average) of the 'Close' column
+        moving_avg_series = data['Close'].rolling(window=window).mean().round(2).iloc[-1]
+
+        # Return the moving average values as a list
+        return moving_avg_series
+
+
     def get_price_change_per_month(self,year,month,stock):
         start_date, end_date = self.get_start_and_end_date(year,month)
         data = self.download_data(start_date,end_date,stock)
@@ -264,7 +284,7 @@ class stock_reader:
                     day_rect = plt.Rectangle((day_idx, -week_idx), 1, -1, color="black",linewidth=1.5)
                 else: 
                     day_rect = plt.Rectangle((day_idx, -week_idx), 1, -1, color="white")
-
+                    
                 ax.add_patch(day_rect)
                 current_date = pd.Timestamp(year=year, month=month, day=day)
                     # Check if current_date is in the trading days
@@ -322,7 +342,8 @@ class stock_reader:
                     ax.text(day_idx + 0.5, -week_idx - 0.5, "FOMC meeting today or tomorrow",
                             ha='center', va='center', fontsize=5, weight='bold', color='black')
 
-                    
+
+  
         if month==current_month:
             # Add grid lines
             for i in range(1, 7):  # Vertical grid lines
@@ -335,13 +356,12 @@ class stock_reader:
         ax.set_ylim(-len(month_weeks), 0)
         ax.axis('off')  # Turn off the axes
 
-
         # Set limits and labels
         ax.set_xlim(0, 5)
         ax.set_ylim(-len(month_weeks), 0)
         ax.axis('off')  # Turn off the axes
         ax.set_title(f'Price Differences for {stock} in {calendar.month_name[month]} {year}\n Price range was {price_range}\n Overall Percentage Change: {monthly_percentage_change}%')
-        
+
         # Function to be called when clicking on a day
         def on_click(event):
             if event.inaxes == ax:
@@ -360,3 +380,24 @@ class stock_reader:
         else:  # Show the plot if we want to get a monthly view
             plt.show()
 
+if __name__ == "__main__":
+    pass 
+
+    # # Create an instance of stock_reader
+    # reader = stock_reader()
+    
+    # # Define the stock ticker and date range
+    # stock = "CLSK"
+    # start_date = "2024-10-01"
+    # end_date = datetime.now().strftime("%Y-%m-%d")
+
+
+    # # Test the 20-day moving average
+    # print(f"20-day moving average for {stock} from {start_date} to {end_date}:")
+    # ma20 = reader.get_moving_average(start_date, end_date, stock, ma20=True)
+    # print(ma20)
+    
+    # # Test the 50-day moving average
+    # print(f"\n50-day moving average for {stock} from {start_date} to {end_date}:")
+    # ma50 = reader.get_moving_average(start_date, end_date, stock, ma20=False)
+    # print(ma50)
