@@ -14,6 +14,7 @@ from web_scraper import web_scraper
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 class App:
+
     def __init__(self, root):
         self.stock_reader_instance = stock_reader(day_details_callback=self.open_day_details_window)
         self.path = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
@@ -74,21 +75,17 @@ class App:
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
-        stocks = ["TSLA", "NVDA", "CLSK","DKIGI.CO"]
+        stocks = ["TSLA", "NVDA", "CLSK","DKIGI.CO","NVO"]
         usd_dkk = int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month,"DKK=X"))
         
-
-    
         # Portfolio data
         portfolio = {
             stocks[0]: {"shares": 70, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
             stocks[1]: {"shares": 80, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
-            stocks[2]: {"shares": 325, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},
-            stocks[3]: {"shares": 993, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[3]))/usd_dkk
-            }
+            stocks[2]: {"shares": 300, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},
+            stocks[3]: {"shares": 993, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[3]))/usd_dkk},
+            stocks[4]: {"shares": 45, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[4]))}
         }
-
-
         # Calculate portfolio value
         total_value = sum(stock["shares"] * stock["price"] for stock in portfolio.values())
         # Back button (Top-left corner)
@@ -109,7 +106,7 @@ class App:
         colors = ["#FF5733", "#33FF57", "#3357FF","#FF33A8","Brown"]  # Assign unique colors for each stock
 
         # Create the pie chart
-        fig, ax = plt.subplots(figsize=(5, 5))
+        fig, ax = plt.subplots(figsize=(6, 6))
         ax.pie(
             sizes, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors
         )
@@ -130,7 +127,6 @@ class App:
 
             # List to store links for the specified month and year
             month_links = []
-
             # Iterate through each article to filter by year and month
             for article in news_data:
                 # Parse the date from the JSON into a datetime object
