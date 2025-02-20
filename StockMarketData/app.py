@@ -48,7 +48,7 @@ class App:
         date_frame = tk.Frame(self.main_frame, pady=5)
         date_frame.grid(row=1, column=0, sticky="w")
         tk.Label(date_frame, text="Select Year:").grid(row=0, column=0, padx=5, pady=5)
-        self.year_entry = ttk.Combobox(date_frame, values=[2021, 2022, 2023, 2024, 2025], state="readonly")
+        self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024, 2025], state="readonly")
         self.year_entry.grid(row=0, column=1, padx=5)
         self.year_entry.set(datetime.now().year)
         tk.Label(date_frame, text="Select Month:").grid(row=0, column=2, padx=5, pady=5)
@@ -77,15 +77,18 @@ class App:
         stocks = ["TSLA", "NVDA", "CLSK","DKIGI.CO"]
         usd_dkk = int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month,"DKK=X"))
         
+
+    
         # Portfolio data
         portfolio = {
             stocks[0]: {"shares": 70, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
             stocks[1]: {"shares": 80, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
-            stocks[2]: {"shares": 250, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},
+            stocks[2]: {"shares": 325, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},
             stocks[3]: {"shares": 993, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[3]))/usd_dkk
             }
-
         }
+
+
         # Calculate portfolio value
         total_value = sum(stock["shares"] * stock["price"] for stock in portfolio.values())
         # Back button (Top-left corner)
@@ -164,6 +167,7 @@ class App:
         sentiment_data = self.stock_reader_instance.get_sentiment(stock, start_date,start_date)
         ma20 = self.stock_reader_instance.get_moving_average(self.stock_reader_instance.start_date, self.stock_reader_instance.end_date, stock, ma20=True)
         ma50 = self.stock_reader_instance.get_moving_average(self.stock_reader_instance.start_date, self.stock_reader_instance.end_date, stock, ma20=False)
+        #print("Sentiment data:", sentiment_data)
         if stock =="CLSK":
             links = self.get_news_links_for_month(year,month)
 
@@ -172,11 +176,11 @@ class App:
 
         if isinstance(data, pd.Series):
             # Extract the required data and convert them to standard Python types
-            open_price = float(data['Open'])
-            high_price = float(data['High'])
-            low_price = float(data['Low'])
-            close_price = float(data['Close'])
-            volume = int(data['Volume'])
+            open_price = float(data['Open'].iloc[0])
+            high_price = float(data['High'].iloc[0])
+            low_price = float(data['Low'].iloc[0])
+            close_price = float(data['Close'].iloc[0])
+            volume = int(data['Volume'].iloc[0])
             # Display the data with proper formatting
             tk.Label(day_window, text=f"Date: {year}-{month:02d}-{day:02d}", font=("Arial", 14)).pack(pady=5)
             tk.Label(day_window, text=f"Stock: {stock}", font=("Arial", 14)).pack(pady=5)
@@ -192,7 +196,7 @@ class App:
              link = tk.Label(day_window, text="Click me to see the total network hashrate", font=("Arial", 10), fg="blue", cursor="hand2")
              link.pack(pady=1)
              link.bind("<Button-1>", lambda e, url="https://minerstat.com/coin/BTC/network-hashrate": webbrowser.get("edge").open(url))
-        
+            
             # Handle sentiment data
             if sentiment_data !=None:
                 sentiment, urls = sentiment_data
@@ -204,6 +208,7 @@ class App:
                         link = tk.Label(day_window, text=url, font=("Arial", 10), fg="blue", cursor="hand2")
                         link.pack(pady=1)
                         link.bind("<Button-1>", lambda e, url=url: webbrowser.get("edge").open(url))
+
                 for lnk in links:
                     link = tk.Label(day_window, text=lnk, font=("Arial", 10), fg="blue", cursor="hand2")
                     link.pack(pady=1)
@@ -217,8 +222,9 @@ class App:
 
         # Only scrape articles for CLSK
         if stock == "CLSK":
-            self.web_scraper_instance.scrape_bitcoin_address()
             self.web_scraper_instance.scrape_articles()
+            self.web_scraper_instance.scrape_bitcoin_address()
+
         # Scrape earnings for any stock
         self.web_scraper_instance.scrape_earnings()
 
@@ -226,7 +232,6 @@ class App:
         year = int(self.year_entry.get())
         month = int(self.month_entry.get())
         stock = str(self.stock_entry.get())
-
         # Draw the calendar
         self.stock_reader_instance.create_month_calendar_view(year, month, stock, download=False)
 

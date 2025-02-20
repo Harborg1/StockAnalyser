@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import sentiment as Sentiment
 import json
 import calendar
-from yfinance import __all__
 class stock_reader:
     def __init__(self, day_details_callback = None):
         
@@ -15,17 +14,33 @@ class stock_reader:
         self.monthly_date = {}
         self.day_details_callback = day_details_callback 
         self.start_date = "2024-01-01"
-        self.end_date = datetime.now().strftime("%Y-%m-%d")
-        
+        self.end_date   = datetime.now().strftime("%Y-%m-%d")
+
     def get_sentiment(self, stock, start_date, end_date):
 
         s = Sentiment.get_news_sentiment(stock, start_date, end_date)
         return s
+
+    def get_moving_average(self, s, e, stock, ma20):
+
+        # Download the data using the existing method
+        data = self.download_data(s, e, stock)
+        if data.empty:
+            return f"No data found for {stock} between {s} and {e}."
+
+        # Choose the window based on the ma20 flag
+        window = 20 if ma20 else 50
+
+        # Compute the rolling mean (moving average) of the 'Close' column
+        moving_avg_series = data['Close'].rolling(window=window).mean().round(2).iloc[-1].item()
+
+        # Return the moving average values as a list
+        return moving_avg_series
     
     def get_data_for_day(self, year, month, day, stock):
         start_date, end_date = self.get_start_and_end_date(year,month)
         data = self.download_data(start_date,end_date,stock)
-        
+
         if not data.empty:
             date_str = f'{year}-{month:02d}-{day:02d}'
             date = pd.Timestamp(date_str)
@@ -60,15 +75,16 @@ class stock_reader:
             self.date_cache[s] = True
             print("Invalid date range")
             return pd.DataFrame()
-        
+    
         try:
             # Attempt to download with a timeout
-            spy_ohlc_df = yf.download(stock, start=s, end=e, progress=False, timeout=5)
+            spy_ohlc_df = yf.download(stock, start=s, end=e,auto_adjust=True)
             if not spy_ohlc_df.empty:
                 #print("Downloading data...")
                 self.cache[cache_key] = spy_ohlc_df
                 #print(spy_ohlc_df)
                 return spy_ohlc_df
+    
             else:
                 print(f"No data found for {stock} between {s} and {e}.")
                 return pd.DataFrame()
@@ -79,40 +95,30 @@ class stock_reader:
 
     def get_close_price(self, s, e, stock):
         data = self.download_data(s, e, stock)
+        l_close = []
         # Check if data is a DataFrame or error message
         if not data.empty:
-            l_close = round(data['Close'], 2).tolist()
+            l_close = round(data['Close'], 2).values.flatten().tolist()
             return l_close
+
         else:
-            return data 
-        
-    def get_moving_average(self, s, e, stock, ma20):
 
-        # Download the data using the existing method
-        data = self.download_data(s, e, stock)
-        if data.empty:
-            return f"No data found for {stock} between {s} and {e}."
-
-        # Choose the window based on the ma20 flag
-        window = 20 if ma20 else 50
-
-        # Compute the rolling mean (moving average) of the 'Close' column
-        moving_avg_series = data['Close'].rolling(window=window).mean().round(2).iloc[-1]
-
-        # Return the moving average values as a list
-        return moving_avg_series
-
-
+            # Return the error message or handle it (e.g., log or raise an error)
+            return data  # This will return the error message directly
+    
     def get_price_change_per_month(self,year,month,stock):
         start_date, end_date = self.get_start_and_end_date(year,month)
+        
+    
         data = self.download_data(start_date,end_date,stock)
+       
         min_val = 10**9
         max_val = 0
         for i in range(len(data)):
-            min_val = min(min_val, data['Open'].iloc[i], data['Close'].iloc[i])
+            min_val = min(min_val, data['Open'].iloc[i].item(), data['Close'].iloc[i].item())
 
         for i in range(len(data)):
-            max_val = max(max_val, data['Open'].iloc[i],data['Close'].iloc[i])
+            max_val = max(max_val, data['Open'].iloc[i].item(),data['Close'].iloc[i].item())
 
         return round(min_val,2),round(max_val,2)
 
@@ -121,7 +127,7 @@ class stock_reader:
         data = self.download_data(start_date,end_date,stock)
         l = []
         for i in range(len(data)):
-            l.append((round(data['Open'].iloc[i],2),round(data['Close'].iloc[i],2)))
+            l.append((round(data['Open'].iloc[i].item(),2),round(data['Close'].iloc[i].item(),2)))
 
         return l
     
@@ -131,7 +137,7 @@ class stock_reader:
         data = self.download_data(start_date, end_date, stock)
         # if stock == "0P0001BC2I.CO":
         #     print(data["Close"])
-        return data['Close'].iloc[-1]
+        return data['Close'].iloc[-1].item()
 
     def get_start_and_end_date(self,year, month):
         key = (year, month)
@@ -162,6 +168,7 @@ class stock_reader:
             if current_date == trading_dates[0]:
                 previous_month_end =  pd.Timestamp(start_date) - pd.DateOffset(days=1)
                 last_month_close = self.get_last_trading_day_close(previous_month_end.year, previous_month_end.month, stock)
+               
                 if last_month_close:  # Ensure there's a valid previous close price
                     if return_percentage:
                         # Calculate percentage change from last month's close
@@ -193,6 +200,7 @@ class stock_reader:
         if len(data) > 0:
             first_open = data['Open'].iloc[0]
             last_close = data['Close'].iloc[-1]
+          
             # Calculate the percentage change from the first to the last trading day
             percentage_change = round(((last_close / first_open) - 1) * 100, 2)
         else:
@@ -222,6 +230,7 @@ class stock_reader:
 
     def create_month_calendar_view(self, year, month, stock, download=False):
 
+
         # Load the earnings dates from the JSON file
         current_date = datetime.now()
         current_month = current_date.month
@@ -243,9 +252,13 @@ class stock_reader:
         fomc_data  = {
             pd.Timestamp(item["date"]) for item in fomc_data_all
         }
-        # Create a figure and axis
-        fig, ax = plt.subplots(figsize=(10, 6))
 
+        fig, ax = plt.subplots(figsize=(9, 6))  # Reduce height to save space
+
+        # Reduce margins
+        plt.subplots_adjust(top=0.85, bottom=0.05, left=0.05, right=0.95)  # Adjust margins
+
+    
         start_date, end_date = self.get_start_and_end_date(year, month)
 
         stock_data = self.download_data(start_date, end_date, stock)
@@ -270,7 +283,7 @@ class stock_reader:
         daily_change = self.get_price_range_per_day(year, month, stock)
 
         month_weeks = self.get_non_weekend_weeks(year,month)
-      
+        
         d = DateConstants()
         stock_market_holidays = d.stock_market_holidays(year)
         # Track the index for price differences and percentages
@@ -284,9 +297,10 @@ class stock_reader:
                     day_rect = plt.Rectangle((day_idx, -week_idx), 1, -1, color="black",linewidth=1.5)
                 else: 
                     day_rect = plt.Rectangle((day_idx, -week_idx), 1, -1, color="white")
-                    
+
                 ax.add_patch(day_rect)
                 current_date = pd.Timestamp(year=year, month=month, day=day)
+
                     # Check if current_date is in the trading days
                 if current_date in trading_days:
                         if idx < len(price_differences):
@@ -297,6 +311,7 @@ class stock_reader:
                             price_diff = 0  # Default value if no price difference available
                             percentage_change = 0.0
                             day_change = 0.0
+
 
                         # Determine color
                         if price_diff > 0:
@@ -342,8 +357,7 @@ class stock_reader:
                     ax.text(day_idx + 0.5, -week_idx - 0.5, "FOMC meeting today or tomorrow",
                             ha='center', va='center', fontsize=5, weight='bold', color='black')
 
-
-  
+                    
         if month==current_month:
             # Add grid lines
             for i in range(1, 7):  # Vertical grid lines
@@ -360,8 +374,12 @@ class stock_reader:
         ax.set_xlim(0, 5)
         ax.set_ylim(-len(month_weeks), 0)
         ax.axis('off')  # Turn off the axes
-        ax.set_title(f'Price Differences for {stock} in {calendar.month_name[month]} {year}\n Price range was {price_range}\n Overall Percentage Change: {monthly_percentage_change}%')
-
+        ax.set_title(
+            f'{stock} Performance in {calendar.month_name[month]} {year}\n'
+            f'Price Range: ${price_range[0]} - ${price_range[1]}\n'
+            f'Overall Percentage Change: {float(monthly_percentage_change.iloc[0])}%',
+            fontsize=12
+        )
         # Function to be called when clicking on a day
         def on_click(event):
             if event.inaxes == ax:
@@ -380,24 +398,3 @@ class stock_reader:
         else:  # Show the plot if we want to get a monthly view
             plt.show()
 
-if __name__ == "__main__":
-    pass 
-
-    # # Create an instance of stock_reader
-    # reader = stock_reader()
-    
-    # # Define the stock ticker and date range
-    # stock = "CLSK"
-    # start_date = "2024-10-01"
-    # end_date = datetime.now().strftime("%Y-%m-%d")
-
-
-    # # Test the 20-day moving average
-    # print(f"20-day moving average for {stock} from {start_date} to {end_date}:")
-    # ma20 = reader.get_moving_average(start_date, end_date, stock, ma20=True)
-    # print(ma20)
-    
-    # # Test the 50-day moving average
-    # print(f"\n50-day moving average for {stock} from {start_date} to {end_date}:")
-    # ma50 = reader.get_moving_average(start_date, end_date, stock, ma20=False)
-    # print(ma50)
