@@ -75,10 +75,10 @@ class stock_reader:
             self.date_cache[s] = True
             print("Invalid date range")
             return pd.DataFrame()
-    
+
         try:
             # Attempt to download with a timeout
-            spy_ohlc_df = yf.download(stock, start=s, end=e,auto_adjust=True)
+            spy_ohlc_df = yf.download(stock, start=s, end=e,auto_adjust=True,progress=False)
             if not spy_ohlc_df.empty:
                 #print("Downloading data...")
                 self.cache[cache_key] = spy_ohlc_df
@@ -92,7 +92,6 @@ class stock_reader:
             print(f"Download error for {stock}: {ex}")
             return pd.DataFrame()
         
-
     def get_close_price(self, s, e, stock):
         data = self.download_data(s, e, stock)
         l_close = []
@@ -100,9 +99,8 @@ class stock_reader:
         if not data.empty:
             l_close = round(data['Close'], 2).values.flatten().tolist()
             return l_close
-
+        
         else:
-
             # Return the error message or handle it (e.g., log or raise an error)
             return data  # This will return the error message directly
     
@@ -146,14 +144,14 @@ class stock_reader:
         start_date = f'{year}-{month:02d}-01'
         if month == 12:
             end_date = f'{year + 1}-01-01'
+
         else:
             end_date = f'{year}-{month + 1:02d}-01'
         self.monthly_date[key] = (start_date, end_date)
         return start_date, end_date
-    
+
     def get_price_or_percentage_change(self, year, month, stock, return_percentage=False):
         start_date, end_date = self.get_start_and_end_date(year, month)
-
         l_close = self.get_close_price(start_date,end_date,stock)
         # If l_close is not a list (i.e., it's an error message), handle the error
         if not isinstance(l_close, list):

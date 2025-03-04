@@ -49,7 +49,7 @@ class App:
         date_frame = tk.Frame(self.main_frame, pady=5)
         date_frame.grid(row=1, column=0, sticky="w")
         tk.Label(date_frame, text="Select Year:").grid(row=0, column=0, padx=5, pady=5)
-        self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024, 2025], state="readonly")
+        self.year_entry = ttk.Combobox(date_frame, values=[2021, 2022, 2023, 2024, 2025], state="readonly")
         self.year_entry.grid(row=0, column=1, padx=5)
         self.year_entry.set(datetime.now().year)
         tk.Label(date_frame, text="Select Month:").grid(row=0, column=2, padx=5, pady=5)
@@ -146,6 +146,8 @@ class App:
         except json.JSONDecodeError:
             print("Error decoding the JSON file.")
             return []
+        
+
 
     def open_day_details_window(self, year, month, day, stock):
         if os.path.exists(self.path):
@@ -192,7 +194,7 @@ class App:
              link = tk.Label(day_window, text="Click me to see the total network hashrate", font=("Arial", 10), fg="blue", cursor="hand2")
              link.pack(pady=1)
              link.bind("<Button-1>", lambda e, url="https://minerstat.com/coin/BTC/network-hashrate": webbrowser.get("edge").open(url))
-            
+
             # Handle sentiment data
             if sentiment_data !=None:
                 sentiment, urls = sentiment_data

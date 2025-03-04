@@ -257,7 +257,7 @@ class web_scraper:
                     continue
                 date_text = cells[1].get_text(strip=True)
 
-                #if date_text == 'Unconfirmed!🚀': continue
+                if date_text == 'Unconfirmed!🚀': continue
                 row_date = datetime.strptime(date_text.split()[0], "%Y-%m-%d")  # Parse the date 
                 btc_mined = cells[3].get_text(strip=True)
                 value_class = cells[3].get("class", [])
