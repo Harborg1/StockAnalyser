@@ -57,7 +57,6 @@ public class TaxCalculator {
         System.out.println(taxCalculator.getTotalProfit()*7.12+2608.0+1336.0+1908-9100 + " "+ "DKK");
         System.out.println(taxCalculator.getName());
     }
-
-
+    
 }
 

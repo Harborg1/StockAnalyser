@@ -33,7 +33,6 @@ class web_scraper:
         service = Service(executable_path="chromedriver.exe")  # Update with your chromedriver path
         self.driver = webdriver.Chrome(service=service, options=options)
         return self.driver
-    
     def scrape_cpi(self):
         self.setup_driver()
         self.driver.get(self.cpi_url)

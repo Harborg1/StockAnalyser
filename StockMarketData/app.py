@@ -49,7 +49,7 @@ class App:
         date_frame = tk.Frame(self.main_frame, pady=5)
         date_frame.grid(row=1, column=0, sticky="w")
         tk.Label(date_frame, text="Select Year:").grid(row=0, column=0, padx=5, pady=5)
-        self.year_entry = ttk.Combobox(date_frame, values=[2021, 2022, 2023, 2024, 2025], state="readonly")
+        self.year_entry = ttk.Combobox(date_frame, values=[2022, 2023, 2024, 2025], state="readonly")
         self.year_entry.grid(row=0, column=1, padx=5)
         self.year_entry.set(datetime.now().year)
         tk.Label(date_frame, text="Select Month:").grid(row=0, column=2, padx=5, pady=5)
@@ -75,16 +75,16 @@ class App:
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
-        stocks = ["TSLA", "NVDA", "CLSK","DKIGI.CO","NVO"]
+        stocks = ["TSLA", "NVDA", "CLSK","DKIGI.CO","PLTR"]
         usd_dkk = int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month,"DKK=X"))
         
         # Portfolio data
         portfolio = {
-            stocks[0]: {"shares": 70, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
-            stocks[1]: {"shares": 80, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
-            stocks[2]: {"shares": 300, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},
+            stocks[0]: {"shares": 45, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year,datetime.now().month, stocks[0]))},
+            stocks[1]: {"shares": 91, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[1]))},  
+            stocks[2]: {"shares": 600, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[2]))},
             stocks[3]: {"shares": 993, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[3]))/usd_dkk},
-            stocks[4]: {"shares": 45, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[4]))}
+            stocks[4]: {"shares": 105, "price": int(self.stock_reader_instance.get_last_trading_day_close(datetime.now().year, datetime.now().month, stocks[4]))}
         }
         # Calculate portfolio value
         total_value = sum(stock["shares"] * stock["price"] for stock in portfolio.values())
@@ -118,7 +118,6 @@ class App:
         # Close the figure after rendering to prevent multiple figures from being displayed
         plt.close(fig)
 
-
     def get_news_links_for_month(self, year, month):
         try:
             # Load the news data from the JSON file
@@ -146,8 +145,6 @@ class App:
         except json.JSONDecodeError:
             print("Error decoding the JSON file.")
             return []
-        
-
 
     def open_day_details_window(self, year, month, day, stock):
         if os.path.exists(self.path):
@@ -194,7 +191,7 @@ class App:
              link = tk.Label(day_window, text="Click me to see the total network hashrate", font=("Arial", 10), fg="blue", cursor="hand2")
              link.pack(pady=1)
              link.bind("<Button-1>", lambda e, url="https://minerstat.com/coin/BTC/network-hashrate": webbrowser.get("edge").open(url))
-
+            
             # Handle sentiment data
             if sentiment_data !=None:
                 sentiment, urls = sentiment_data

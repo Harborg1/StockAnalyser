@@ -1,24 +1,24 @@
-
-import os
 import subprocess
 
-def get_hello_world_from_java():
-    java_folder = r'C:\Users\cahar\Documents\GitHub\StockAnalyser\StockMarketData\JavaPog\src'
+def get_tax_data_from_java():
+    java_folder = r'C:\Users\cahar\OneDrive\Documents\GitHub\StockAnalyser\StockMarketData\JavaPog\src'
 
-    # Run the Java program
+
+    # Run the Java program with correct classpath
     result = subprocess.run(
-        ["java", "-cp", java_folder, "TaxCalculator"],  # -cp specifies the classpath
+        ["java", "-cp", ".", "TaxCalculator"],  # Ensure classpath is set correctly
+        cwd=java_folder,               # Set working directory
         capture_output=True,
         text=True
     )
-    # Return the output or handle errors
+
     if result.returncode == 0:
-        return result.stdout.strip()  # Return output without newline
+        return result.stdout.strip()
     else:
-        print("Error:", result.stderr)
+        print("Execution Error:", result.stderr)
         return None
-    
+
 # Example usage
-hello_world = get_hello_world_from_java()
-if hello_world:
-    print("Received from Java:", hello_world)
+output = get_tax_data_from_java()
+if output:
+    print("Received from Java:", output)
