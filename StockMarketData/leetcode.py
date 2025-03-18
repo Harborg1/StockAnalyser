@@ -6,7 +6,7 @@ class Solution:
         for char in str_new:
             if char in dictionairy.keys():
                 sum+=dictionairy[char]
-                
+
         if "IV" in s:
             sum-=2
         

@@ -8,7 +8,6 @@ import json
 import calendar
 class stock_reader:
     def __init__(self, day_details_callback = None):
-        
         self.cache = {}
         self.date_cache =  {}
         self.monthly_date = {}
@@ -16,18 +15,17 @@ class stock_reader:
         self.start_date = "2024-01-01"
         self.end_date   = datetime.now().strftime("%Y-%m-%d")
 
-    def get_sentiment(self, stock, start_date, end_date):
-
+    def get_sentiment(self, stock:str, start_date:str, end_date:str) -> tuple[float, list | None] | None:
         s = Sentiment.get_news_sentiment(stock, start_date, end_date)
         return s
-
-    def get_moving_average(self, s, e, stock, ma20):
+    
+    
+    def get_moving_average(self, s:int , e:int, stock:str, ma20:bool):
 
         # Download the data using the existing method
         data = self.download_data(s, e, stock)
         if data.empty:
             return f"No data found for {stock} between {s} and {e}."
-
         # Choose the window based on the ma20 flag
         window = 20 if ma20 else 50
 
@@ -36,11 +34,9 @@ class stock_reader:
 
         # Return the moving average values as a list
         return moving_avg_series
-    
-    def get_data_for_day(self, year, month, day, stock):
+    def get_data_for_day(self, year:int, month:int, day:int, stock:str) ->  pd.DataFrame | str:
         start_date, end_date = self.get_start_and_end_date(year,month)
         data = self.download_data(start_date,end_date,stock)
-
         if not data.empty:
             date_str = f'{year}-{month:02d}-{day:02d}'
             date = pd.Timestamp(date_str)
@@ -53,11 +49,11 @@ class stock_reader:
             # Return the error message from download_data
             return "No data found"
     
-    def is_valid_date_range(self, s,e):
+    def is_valid_date_range(self, s:int) -> bool:
         today = pd.Timestamp.now()
         return pd.Timestamp(s) <= today  # Return True or False only
     
-    def download_data(self, s, e, stock):
+    def download_data(self, s:str, e:str, stock:str) -> pd.DataFrame | tuple[str,int,int]:
 
         # Generate a unique key for caching
         cache_key = (stock, s, e)
@@ -71,11 +67,11 @@ class stock_reader:
             #print(f"Using cached data for {stock} between {s} and {e}.")
             return self.cache[cache_key]
         
-        if not self.is_valid_date_range(s, e):
+        if not self.is_valid_date_range(s):
             self.date_cache[s] = True
             print("Invalid date range")
             return pd.DataFrame()
-
+        
         try:
             # Attempt to download with a timeout
             spy_ohlc_df = yf.download(stock, start=s, end=e,auto_adjust=True,progress=False)
@@ -84,7 +80,6 @@ class stock_reader:
                 self.cache[cache_key] = spy_ohlc_df
                 #print(spy_ohlc_df)
                 return spy_ohlc_df
-    
             else:
                 print(f"No data found for {stock} between {s} and {e}.")
                 return pd.DataFrame()
@@ -103,13 +98,12 @@ class stock_reader:
         else:
             # Return the error message or handle it (e.g., log or raise an error)
             return data  # This will return the error message directly
-    
-    def get_price_change_per_month(self,year,month,stock):
+
+
+    def get_price_change_per_month(self,year:int,month:int,stock:str) -> tuple[float, float]:
         start_date, end_date = self.get_start_and_end_date(year,month)
-        
-    
+
         data = self.download_data(start_date,end_date,stock)
-       
         min_val = 10**9
         max_val = 0
         for i in range(len(data)):
@@ -129,13 +123,14 @@ class stock_reader:
 
         return l
     
-    def get_last_trading_day_close(self, year, month, stock):
+    def get_last_trading_day_close(self, year:int, month:int, stock:str) -> pd.DataFrame | tuple[str, int, int]:
         start_date, end_date = self.get_start_and_end_date(year, month)
         # Download the data within the date range
         data = self.download_data(start_date, end_date, stock)
         # if stock == "0P0001BC2I.CO":
         #     print(data["Close"])
         return data['Close'].iloc[-1].item()
+
 
     def get_start_and_end_date(self,year, month):
         key = (year, month)
@@ -149,14 +144,14 @@ class stock_reader:
             end_date = f'{year}-{month + 1:02d}-01'
         self.monthly_date[key] = (start_date, end_date)
         return start_date, end_date
+    def get_price_or_percentage_change(self, year:int, month:int, stock:str, return_percentage:bool=False) -> list[float]:
 
-    def get_price_or_percentage_change(self, year, month, stock, return_percentage=False):
         start_date, end_date = self.get_start_and_end_date(year, month)
         l_close = self.get_close_price(start_date,end_date,stock)
         # If l_close is not a list (i.e., it's an error message), handle the error
         if not isinstance(l_close, list):
             return l_close  # Return the error message or handle it appropriately
-        
+
         result = []
         # Get the trading dates within the range
         trading_dates = pd.date_range(start=start_date, end=end_date)
@@ -188,7 +183,7 @@ class stock_reader:
             result.append(change_value)
         return result
 
-    def get_monthly_percentage_change(self, year, month, stock):
+    def get_monthly_percentage_change(self, year:int, month:int, stock:str) -> float:
         start_date, end_date = self.get_start_and_end_date(year,month)
 
         # Download the data within the date range
@@ -207,7 +202,7 @@ class stock_reader:
         return percentage_change
 
     # Function to generate non-weekend weeks with 5 elements each
-    def get_non_weekend_weeks(self, year, month):
+    def get_non_weekend_weeks(self, year:int, month:int) -> list[list[int]]:
         # Get the first and last day of the month
         _, num_days_in_month = calendar.monthrange(year, month)
         all_days = pd.date_range(start=f"{year}-{month:02d}-01", end=f"{year}-{month:02d}-{num_days_in_month}")
@@ -219,15 +214,14 @@ class stock_reader:
         weeks = [non_weekend_days[i:i+5] for i in range(0, len(non_weekend_days), 5)]
         return weeks
     
-   
-    def get_json_data(self,file_name):
+
+    def get_json_data(self, file_name:str):
          with open(f'json_folder\\{file_name}', 'r') as file:
             data = json.load(file)
 
          return data
-
-    def create_month_calendar_view(self, year, month, stock, download=False):
-
+    
+    def create_month_calendar_view(self, year:int, month:int, stock:str, download:bool=False):
 
         # Load the earnings dates from the JSON file
         current_date = datetime.now()
@@ -246,7 +240,7 @@ class stock_reader:
         cpi_data = {
             pd.Timestamp(item["date"]) for item in cpi_data_all
         }
-        
+
         fomc_data  = {
             pd.Timestamp(item["date"]) for item in fomc_data_all
         }
@@ -256,7 +250,6 @@ class stock_reader:
         # Reduce margins
         plt.subplots_adjust(top=0.85, bottom=0.05, left=0.05, right=0.95)  # Adjust margins
 
-    
         start_date, end_date = self.get_start_and_end_date(year, month)
 
         stock_data = self.download_data(start_date, end_date, stock)
@@ -309,7 +302,6 @@ class stock_reader:
                             price_diff = 0  # Default value if no price difference available
                             percentage_change = 0.0
                             day_change = 0.0
-
 
                         # Determine color
                         if price_diff > 0:

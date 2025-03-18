@@ -25,7 +25,6 @@ class App:
         self.main_frame.grid(row=0, column=0)
         self.populate_main_screen()
 
-
     def populate_main_screen(self):
         """Populates the main screen with the original content."""
         # Clear the main frame
@@ -36,12 +35,12 @@ class App:
         stock_frame = tk.Frame(self.main_frame, pady=5)
         stock_frame.grid(row=0, column=0, sticky="w")
         tk.Label(stock_frame, text="Select stock:").grid(row=0, column=0, padx=5, pady=5)
-        self.stock_entry = ttk.Combobox(stock_frame, values=["NVO", "TSLA", "CLSK", "NVDA"], state="readonly")
+        self.stock_entry = ttk.Combobox(stock_frame, values=["NVO", "TSLA", "CLSK", "NVDA","PLTR","SPY"], state="readonly")
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
-        
-        self.web_scraper_instance = web_scraper(self.stock_entry.get())
 
+        self.web_scraper_instance = web_scraper(self.stock_entry.get())
+        
         self.navigate_button = tk.Button(
         stock_frame, text="→", font=("Arial", 12), command=self.re_populate_screen)
         self.navigate_button.grid(row=0, column=5, padx=2, pady=2)
@@ -70,7 +69,7 @@ class App:
         self.fetch_news_button = tk.Button(action_frame, text="Fetch news", command=lambda: self.fetch_news())
         self.fetch_news_button.grid(row=0, column=1, padx=5, pady=5)
 
-    def re_populate_screen(self):
+    def re_populate_screen(self) -> list:
         """Replaces the main screen with the second screen, showing portfolio details."""
         for widget in self.main_frame.winfo_children():
             widget.destroy()
@@ -104,21 +103,20 @@ class App:
         labels = portfolio.keys()
         sizes = [stock["shares"] * stock["price"] for stock in portfolio.values()]
         colors = ["#FF5733", "#33FF57", "#3357FF","#FF33A8","Brown"]  # Assign unique colors for each stock
-
+        
         # Create the pie chart
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.pie(
             sizes, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors
         )
         ax.axis("equal")  # Equal aspect ratio ensures the pie chart is circular.
-
         # Embed the chart in the Tkinter window
         canvas = FigureCanvasTkAgg(fig, self.main_frame)
         canvas.get_tk_widget().grid(row=6, column=0, pady=10)
         # Close the figure after rendering to prevent multiple figures from being displayed
         plt.close(fig)
 
-    def get_news_links_for_month(self, year, month):
+    def get_news_links_for_month(self, year, month) -> list:
         try:
             # Load the news data from the JSON file
             with open('json_folder\\article_links.json', 'r') as f:
@@ -138,6 +136,7 @@ class App:
             # print("Returning month links...")
             # print(month_links)
             return month_links
+    
         
         except FileNotFoundError:
             print("The news_releases.json file was not found.")
@@ -151,9 +150,7 @@ class App:
             webbrowser.register("edge", None, webbrowser.BackgroundBrowser(self.path))
         else:
             print("Microsoft Edge not found at default paths.")
-
         """Opens a new window to show detailed stock data for the selected day."""
-
         btc_mined = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data_2024)
         day_window = tk.Toplevel(self.root)
         day_window.title(f"Stock Details for {stock} - {year}-{month:02d}-{day:02d}")
@@ -168,6 +165,7 @@ class App:
 
         else:
             links = []
+    
 
         if isinstance(data, pd.Series):
             # Extract the required data and convert them to standard Python types
