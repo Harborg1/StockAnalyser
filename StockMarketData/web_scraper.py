@@ -12,6 +12,22 @@ from selenium.webdriver.support import expected_conditions as EC
 import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 from datetime import datetime
+import time
+
+
+from selenium.webdriver.support import expected_conditions as EC
+
+class TextPresentInElement(object):
+    def __init__(self, locator):
+        self.locator = locator
+    def __call__(self, driver):
+        try:
+            element = driver.find_element(*self.locator)
+            return element.text.strip() != ''
+        except:
+            return False
+        
+
 
 # https://googlechromelabs.github.io/chrome-for-testing/#stable
 class web_scraper:
@@ -20,8 +36,11 @@ class web_scraper:
         self.stock_name = stock_name.upper()
         self.earnings_url = f'https://www.nasdaq.com/market-activity/stocks/{self.stock_name}/earnings'
         self.cpi_url = "https://www.bls.gov/schedule/news_release/cpi.htm"
+        self.sentiment_url = "https://edition.cnn.com/markets/fear-and-greed"
+    
         self.json_file_path_earnings = "json_folder\\stock_earnings.json"
         self.json_file_path_cpi = "json_folder\\cpi.json"
+        self.json_file_path_fear_greed = "json_folder\\feargreed.json"
         self.driver = None
         self.bitcoin_data = "json_folder\\bitcoin_address_data_all_time.json"
         self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
@@ -74,7 +93,6 @@ class web_scraper:
                 })
 
         self.driver.quit()
-
         # Save new CPI data if any found
         if new_cpi:
             with open(self.json_file_path_cpi, "w", encoding="utf-8") as file:
@@ -85,6 +103,37 @@ class web_scraper:
 
         return new_cpi
 
+    def scrape_fear_greed_index(self,url):
+        if self.driver is None:
+            self.setup_driver()
+        self.driver.get(url)
+
+        json_file_path = self.json_file_path_fear_greed
+
+        if os.path.exists(json_file_path):
+            os.remove(json_file_path)
+            print(f"Deleted existing file: {json_file_path}")
+        try:
+            time.sleep(3)
+            locator = (By.CLASS_NAME, "market-fng-gauge__dial-number-value")
+            WebDriverWait(self.driver, 1500).until(EC.presence_of_element_located(locator))
+            elements = self.driver.find_elements(By.CLASS_NAME, "market-fng-gauge__dial-number-value")
+            for el in elements:
+                value = el.text.strip()
+                if value:
+                    #Save to JSON file
+                    data = {
+                        "date": datetime.now().strftime("%Y-%m-%d"),
+                        "fear_greed_index": value
+                    }
+                    with open(self.json_file_path_fear_greed, "w") as json_file:
+                        json.dump(data, json_file, indent=4)
+                    self.driver.quit()
+                    return value
+            return None
+        except Exception as e:
+            print(f"Error scraping Fear & Greed index: {e}")
+            return None
 
     def scrape_earnings(self):
         """Scrapes earnings dates, updates changes, and saves them to a JSON file."""
@@ -160,7 +209,6 @@ class web_scraper:
         finally:
             pass
 
-
         articles = soup.select("a[href*='/news/news-details/']")
         new_links = []
 
@@ -202,6 +250,7 @@ class web_scraper:
 
         return new_links
     
+
     def scrape_bitcoin_address(self):
         """
         Scrapes data from the bitcoin address of CLSK that is more recent than the cutoff date."""
@@ -231,6 +280,7 @@ class web_scraper:
                 load_more_button = WebDriverWait(self.driver, 100).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='button'][class*='btn-outline-secondary'][onclick*='getTransactions']"))
                 )
+                
                 self.driver.execute_script("arguments[0].click();", load_more_button)
                 WebDriverWait(self.driver, 100).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "#txs tr:not(#loading)"))
@@ -289,11 +339,13 @@ class web_scraper:
         self.driver.quit()
         return existing_data
     
+
     def scrape_bitcoin_address_all_time(self):
         """Scrapes data from the specified Bitcoin address page, including all available transactions."""
         url = "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab"
         json_file_path = self.bitcoin_data
-
+        
+    
         # Setup driver
         self.setup_driver()
         self.driver.get(url)
@@ -323,7 +375,7 @@ class web_scraper:
         if not table_body:
             print("No table body with ID 'txs' found")
             return
-
+        
         rows = table_body.find_all("tr")
         for row in rows:
             cells = row.find_all("td")
@@ -336,7 +388,6 @@ class web_scraper:
             if date_text=="":
                 continue
              # Skip negative btc mined amounts
-
              # Skip if the data is already in the existing data
             if any(item['btc_mined'] == btc_mined for item in existing_data):
                 continue
@@ -355,8 +406,7 @@ class web_scraper:
 
         self.driver.quit()
         return existing_data
-
-
+    
     def calculate_total_btc(self,json_data):
          # Load Bitcoin data from the file
         nov_30_2024 = 9297
@@ -382,7 +432,7 @@ class web_scraper:
         if os.path.exists(json_file_path):
             with open(json_file_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
-        
+
         btc_by_month = defaultdict(float)
         for entry in data:
         # Extract month from the date
@@ -402,15 +452,12 @@ class web_scraper:
                 total_btc-=375*5+200
                 btc_by_month[month]-=375*5+200
             #print(f"{month}: {total_btc:.8f}")
-
-        return btc_by_month   
-    
+        return btc_by_month
     def plot_btc_histogram(self):
         btc_by_month = self.calculate_btc_mined_per_month(self.bitcoin_data)
         # Sort the dictionary by month
         sorted_months = sorted(btc_by_month.keys())
         btc_values = [btc_by_month[month] for month in sorted_months]
-
         # Create the histogram
         plt.figure(figsize=(10, 6))
         plt.bar(sorted_months, btc_values, width=0.6, align='center', alpha=0.7)
@@ -420,12 +467,16 @@ class web_scraper:
         plt.title("Bitcoin Mined Per Month")
         plt.tight_layout()
         plt.show()
+
+
 # Only execute when this script is run directly
 if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
-    scraper.scrape_earnings()
-    scraper.scrape_bitcoin_address()
+    # scraper.scrape_earnings()
+    #scraper.scrape_bitcoin_address()
+    fear_greed_value = scraper.scrape_fear_greed_index(scraper.sentiment_url)
+    print(f"Fear & Greed Index: {fear_greed_value}")
     #scraper.scrape_bitcoin_address_all_time()
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
     # print(scraper.calculate_btc_mined_per_month(scraper.bitcoin_data))
