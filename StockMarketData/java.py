@@ -10,7 +10,7 @@ def get_tax_data_from_java():
         capture_output=True,
         text=True
     )
-    
+
     if result.returncode == 0:
         return result.stdout.strip()
     else:

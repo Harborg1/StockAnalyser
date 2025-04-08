@@ -178,6 +178,7 @@ class web_scraper:
 
         self.driver.quit()
 
+
         # Merge and save the updated earnings data
         final_earnings = existing_earnings + updated_earnings + new_earnings
         with open(self.json_file_path_earnings, "w", encoding="utf-8") as file:
@@ -208,7 +209,7 @@ class web_scraper:
             soup = BeautifulSoup(driver.page_source, 'html.parser')
         finally:
             pass
-
+        
         articles = soup.select("a[href*='/news/news-details/']")
         new_links = []
 
@@ -440,7 +441,6 @@ class web_scraper:
             month = date.strftime("%Y-%m")  # Format as "YYYY-MM"
             btc_mined = float(entry["btc_mined"])  # Convert btc_mined to float
             btc_by_month[month] += btc_mined
-
         # Print the results
         print("Bitcoin mined per month:")
         for month, total_btc in btc_by_month.items():
@@ -467,7 +467,6 @@ class web_scraper:
         plt.title("Bitcoin Mined Per Month")
         plt.tight_layout()
         plt.show()
-
 
 # Only execute when this script is run directly
 if __name__ == "__main__":

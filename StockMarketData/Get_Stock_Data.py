@@ -19,9 +19,7 @@ class stock_reader:
         s = Sentiment.get_news_sentiment(stock, start_date, end_date)
         return s
     
-    
     def get_moving_average(self, s:int , e:int, stock:str, ma20:bool):
-
         # Download the data using the existing method
         data = self.download_data(s, e, stock)
         if data.empty:
@@ -31,7 +29,6 @@ class stock_reader:
 
         # Compute the rolling mean (moving average) of the 'Close' column
         moving_avg_series = data['Close'].rolling(window=window).mean().round(2).iloc[-1].item()
-
         # Return the moving average values as a list
         return moving_avg_series
     def get_data_for_day(self, year:int, month:int, day:int, stock:str) ->  pd.DataFrame | str:
@@ -49,6 +46,7 @@ class stock_reader:
             # Return the error message from download_data
             return "No data found"
     
+
     def is_valid_date_range(self, s:int) -> bool:
         today = pd.Timestamp.now()
         return pd.Timestamp(s) <= today  # Return True or False only
@@ -98,11 +96,8 @@ class stock_reader:
         else:
             # Return the error message or handle it (e.g., log or raise an error)
             return data  # This will return the error message directly
-
-
     def get_price_change_per_month(self,year:int,month:int,stock:str) -> tuple[float, float]:
         start_date, end_date = self.get_start_and_end_date(year,month)
-
         data = self.download_data(start_date,end_date,stock)
         min_val = 10**9
         max_val = 0
@@ -161,7 +156,6 @@ class stock_reader:
             if current_date == trading_dates[0]:
                 previous_month_end =  pd.Timestamp(start_date) - pd.DateOffset(days=1)
                 last_month_close = self.get_last_trading_day_close(previous_month_end.year, previous_month_end.month, stock)
-               
                 if last_month_close:  # Ensure there's a valid previous close price
                     if return_percentage:
                         # Calculate percentage change from last month's close
@@ -387,4 +381,5 @@ class stock_reader:
             return plt
         else:  # Show the plot if we want to get a monthly view
             plt.show()
+
 
