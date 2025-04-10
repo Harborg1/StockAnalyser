@@ -407,13 +407,13 @@ class App:
         try:
             # Check if the data is in the .json file
             with open('json_folder\\feargreed.json', 'r', encoding='utf-8') as f:
-                sentiment_data: Dict[str, Any] = json.load(f)
-                if sentiment_data["date"] == datetime.now().strftime("%Y-%m-%d"):
-                    self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data["fear_greed_index"]}')
+                sentiment_data = json.load(f)
+                if sentiment_data[-1]["date"] == datetime.now().strftime("%Y-%m-%d"):
+                    self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data[-1]["fear_greed_index"]}')
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Could not retrieve the data: {e}")
 
-        if sentiment_data["date"] != datetime.now().strftime("%Y-%m-%d"):
+        if sentiment_data[-1]["date"] != datetime.now().strftime("%Y-%m-%d"):
             sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(
                 self.web_scraper_instance.sentiment_url
             )

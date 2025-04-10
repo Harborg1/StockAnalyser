@@ -108,11 +108,10 @@ class web_scraper:
             self.setup_driver()
         self.driver.get(url)
 
-        json_file_path = self.json_file_path_fear_greed
-
-        if os.path.exists(json_file_path):
-            os.remove(json_file_path)
-            print(f"Deleted existing file: {json_file_path}")
+        existing_values = []
+        if os.path.exists(self.json_file_path_fear_greed):
+            with open(self.json_file_path_fear_greed, "r", encoding="utf-8") as file:
+                existing_values = json.load(file)
         try:
             time.sleep(3)
             locator = (By.CLASS_NAME, "market-fng-gauge__dial-number-value")
@@ -121,20 +120,24 @@ class web_scraper:
             for el in elements:
                 value = el.text.strip()
                 if value:
+                    data = []
                     #Save to JSON file
-                    data = {
+                    data.append({
                         "date": datetime.now().strftime("%Y-%m-%d"),
                         "fear_greed_index": value
-                    }
+                    })
+                    if data["date"] ==existing_values["date"]:
+                        break
                     with open(self.json_file_path_fear_greed, "w") as json_file:
-                        json.dump(data, json_file, indent=4)
+                        json.dump(data+existing_values, json_file, indent=4)
                     self.driver.quit()
                     return value
             return None
+        
         except Exception as e:
             print(f"Error scraping Fear & Greed index: {e}")
             return None
-
+        
     def scrape_earnings(self):
         """Scrapes earnings dates, updates changes, and saves them to a JSON file."""
         self.setup_driver()
@@ -346,7 +349,6 @@ class web_scraper:
         url = "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab"
         json_file_path = self.bitcoin_data
         
-    
         # Setup driver
         self.setup_driver()
         self.driver.get(url)
