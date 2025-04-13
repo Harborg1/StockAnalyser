@@ -1,9 +1,15 @@
-# StockAnalyser
+# 📊 Stock Market Monthly Data Analysis App
 
-This application allows users to get an overview of how a stock has performed on a monthly baisis. 
-The stocks I have selected to track are those that I follow personally.
-To use the application, clone the repository from Github and open a code editor. 
-Then navigate to the StockMarketData folder and open it.
-Then open a terminal and run the app.py file. This will display a simple User Interface.
-Then, select a stock and the month you want to see data for.
-Users can download a .pdf of the monthly data with the download button and fetch relevant news with the fetch news button.
+This application provides a clear and interactive monthly overview of a stock's performance.
+The tracked stocks are those that I follow personally.
+## Features
+- 📅 View daily performance of selected stocks on a monthly calendar view.
+- 📥 Download a `.pdf` report of the selected month  
+- 📰 Fetch and display relevant news articles for the selected stock  
+- 🔎 Simple, intuitive user interface
+
+
+If you want to fetch relevant news data, make sure to have the latest version of Chrome installed.
+It is also required to get an API key from https://newsapi.org to get articles and sentiment data.
+
+After setting everything up, you can navigate to the app.py file and use the application.
