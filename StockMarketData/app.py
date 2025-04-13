@@ -159,7 +159,7 @@ class App:
                 ))
             },
             stocks[2]: {
-                "shares": 600,
+                "shares": 700,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -272,6 +272,7 @@ class App:
         except Exception as e:
             print(f"Unexpected error while getting news links: {e}")
             return []
+        
         
     def open_day_details_window(self, year: int, month: int, day: int, stock: str) -> None:
         """Open a window showing detailed stock data for a specific day.
@@ -396,7 +397,7 @@ class App:
             self.web_scraper_instance.scrape_bitcoin_address()
         # Scrape earnings for any stock
         self.web_scraper_instance.scrape_earnings()
-        
+    
 
     def get_sentiment_data(self) -> None:
         """Retrieve and display sentiment data for the current day.
@@ -414,7 +415,6 @@ class App:
                     self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data[0]["fear_greed_index"]}')
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Could not retrieve the data: {e}")
-            
         if sentiment_data[0]["date"] != current_date:
 
             sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(
