@@ -1,4 +1,4 @@
-# 📊 Stock Market Monthly Overview App
+# 📊 Stock Market Monthly Data Analysis App
 
 This application provides a clear and interactive monthly overview of a stock's performance.
 The tracked stocks are those that I follow personally.
