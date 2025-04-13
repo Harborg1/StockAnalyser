@@ -60,7 +60,7 @@ class App:
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
         self.web_scraper_instance = web_scraper(self.stock_entry.get())
-        
+
         self.navigate_button = tk.Button(
             stock_frame, 
             text="→", 
@@ -314,6 +314,7 @@ class App:
             stock,
             ma20=False
         )
+
         
         # Get news links if available
         links: List[str] = self.get_news_links_for_month(year, month) if stock == "CLSK" else []
@@ -387,15 +388,15 @@ class App:
         2. Scrapes articles if the stock is CLSK
         3. Scrapes earnings data for any stock
         """
-        stock: str = str(self.stock_entry.get())
-        
+        self.stock_entry: str = str(self.stock_entry.get())
+        self.web_scraper_instance = web_scraper(self.stock_entry)
         # Only scrape articles for CLSK
-        if stock == "CLSK":
+        if self.stock_entry == "CLSK":
             self.web_scraper_instance.scrape_articles()
             self.web_scraper_instance.scrape_bitcoin_address()
-            
         # Scrape earnings for any stock
         self.web_scraper_instance.scrape_earnings()
+        
 
     def get_sentiment_data(self) -> None:
         """Retrieve and display sentiment data for the current day.
@@ -404,16 +405,18 @@ class App:
         2. If the data is not available or outdated, scrapes new data
         3. Displays the sentiment value in the UI
         """
+        current_date = datetime.now().strftime("%Y-%m-%d")
         try:
             # Check if the data is in the .json file
             with open('json_folder\\feargreed.json', 'r', encoding='utf-8') as f:
                 sentiment_data = json.load(f)
-                if sentiment_data[-1]["date"] == datetime.now().strftime("%Y-%m-%d"):
+                if sentiment_data[0]["date"] == current_date:
                     self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data[-1]["fear_greed_index"]}')
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Could not retrieve the data: {e}")
 
-        if sentiment_data[-1]["date"] != datetime.now().strftime("%Y-%m-%d"):
+        if sentiment_data[0]["date"] != current_date:
+
             sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(
                 self.web_scraper_instance.sentiment_url
             )
@@ -430,7 +433,6 @@ class App:
         year: int = int(self.year_entry.get())
         month: int = int(self.month_entry.get())
         stock: str = str(self.stock_entry.get())
-        
         # Draw the calendar
         self.stock_reader_instance.create_month_calendar_view(year, month, stock, download=False)
 

@@ -113,7 +113,7 @@ class web_scraper:
             with open(self.json_file_path_fear_greed, "r", encoding="utf-8") as file:
                 existing_values = json.load(file)
         try:
-            time.sleep(3)
+            time.sleep(6)
             locator = (By.CLASS_NAME, "market-fng-gauge__dial-number-value")
             WebDriverWait(self.driver, 1500).until(EC.presence_of_element_located(locator))
             elements = self.driver.find_elements(By.CLASS_NAME, "market-fng-gauge__dial-number-value")
@@ -126,7 +126,7 @@ class web_scraper:
                         "date": datetime.now().strftime("%Y-%m-%d"),
                         "fear_greed_index": value
                     })
-                    if data["date"] ==existing_values["date"]:
+                    if data[0] ["date"] ==existing_values[0]["date"]:
                         break
                     with open(self.json_file_path_fear_greed, "w") as json_file:
                         json.dump(data+existing_values, json_file, indent=4)

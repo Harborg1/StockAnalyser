@@ -3,6 +3,7 @@ import requests
 import os
 import httpx
 from dotenv import load_dotenv
+import time
 
 load_dotenv("passcodes.env")
 
@@ -10,8 +11,8 @@ API= os.getenv("API_KEY")
 
 def get_news_sentiment(stock, start_date, end_date):
     url = f"https://newsapi.org/v2/everything?q={stock}&from={start_date}&to={end_date}&sortBy=popularity&apiKey={API}"
-
     with httpx.Client(http2=True) as client:
+        time.sleep(2)
         response = client.get(url)
 
     # Check if the request was successful
