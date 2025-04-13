@@ -411,10 +411,10 @@ class App:
             with open('json_folder\\feargreed.json', 'r', encoding='utf-8') as f:
                 sentiment_data = json.load(f)
                 if sentiment_data[0]["date"] == current_date:
-                    self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data[-1]["fear_greed_index"]}')
+                    self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data[0]["fear_greed_index"]}')
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Could not retrieve the data: {e}")
-
+            
         if sentiment_data[0]["date"] != current_date:
 
             sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(
