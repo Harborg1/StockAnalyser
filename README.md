@@ -5,14 +5,13 @@ This application provides a clear and interactive monthly overview of a stock's 
 The tracked stocks are those that I follow personally.
 ## Features
 
-- 📅 View daily performance of selected stocks on a monthly calendar  
+- 📅 View daily performance of selected stocks on a monthly calendar view.
 - 📥 Download a `.pdf` report of the selected month  
 - 📰 Fetch and display relevant news articles for the selected stock  
-- 🔎 Simple, intuitive user interface 
+- 🔎 Simple, intuitive user interface
 
 
 If you want to fetch relevant news data, make sure to have the latest version of Chrome installed.
-Also, it is required to install the libraries used for the project. It is also required to 
-get an API key from https://newsapi.org to get articles and sentiment data.
+It is also required to get an API key from https://newsapi.org to get articles and sentiment data.
 
 After setting everything up, you can navigate to the app.py file and use the application.
