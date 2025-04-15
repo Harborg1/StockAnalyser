@@ -44,7 +44,6 @@ class DateConstants:
             pd.Timestamp(year=2023, month=11, day=23): "Thanksgiving Day",
             pd.Timestamp(year=2023, month=12, day=25): "Christmas Day",
         }
-           
         elif year == 2022:
             stock_market_holidays = {
             pd.Timestamp(year=2022, month=1, day=1): "New Year's Day",
@@ -74,4 +73,3 @@ class DateConstants:
 
         return stock_market_holidays
     
-

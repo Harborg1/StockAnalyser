@@ -54,7 +54,7 @@ class App:
         tk.Label(stock_frame, text="Select stock:").grid(row=0, column=0, padx=5, pady=5)
         self.stock_entry = ttk.Combobox(
             stock_frame, 
-            values=["NVO", "TSLA", "CLSK", "NVDA", "PLTR", "SPY"], 
+            values=["TSLA", "CLSK", "NVDA", "PLTR", "SPY"], 
             state="readonly"
         )
         self.stock_entry.grid(row=0, column=1, padx=5)
@@ -316,7 +316,7 @@ class App:
             ma20=False
         )
 
-        
+    
         # Get news links if available
         links: List[str] = self.get_news_links_for_month(year, month) if stock == "CLSK" else []
 
