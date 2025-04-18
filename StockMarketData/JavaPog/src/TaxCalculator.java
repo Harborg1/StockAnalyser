@@ -67,8 +67,6 @@ public class TaxCalculator {
         return this;
     }
 
-
-
     public static void main(String[] args) {
         TaxCalculator taxcalculatorCLSK = new TaxCalculator("CLSK", 500,9.53, 
         List.of(10.26, 10.62, 10.81,9.89,8.85,8.32),0);
@@ -82,6 +80,9 @@ public class TaxCalculator {
         //taxCalculatorNVO.getTotalProfit();
         int PLTR = 2037;
         System.out.println((taxCalculatorNVO.getTotalProfit()+taxcalculatorCLSK.getTotalProfit())*7+2608+1910-9100 + PLTR + " " +"DKK of profit");
+        
     }
+
+
 
 }

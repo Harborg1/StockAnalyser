@@ -2,9 +2,8 @@ import subprocess
 import os
 
 def get_tax_data_from_java():
-    java_folder = r'C:\Users\cahar\OneDrive\Documents\GitHub\StockAnalyser\StockMarketData\JavaPog\src'
+    java_folder = r'C:\Users\cahar\Documents\GitHub\StockAnalyser\StockMarketData\JavaPog\src'
     java_file = "TaxCalculator.java"
-    
     # Step 1: Compile the Java file
     compile_result = subprocess.run(
         ["javac", java_file],
@@ -24,6 +23,7 @@ def get_tax_data_from_java():
         capture_output=True,
         text=True
     )
+    
 
     if run_result.returncode == 0:
         return run_result.stdout.strip()
