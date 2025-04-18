@@ -80,7 +80,8 @@ public class TaxCalculator {
         List.of(83.03, 86.7),0);
         taxCalculatorNVO.StockDataNVO();
         //taxCalculatorNVO.getTotalProfit();
-        System.out.println((taxCalculatorNVO.getTotalProfit()+taxcalculatorCLSK.getTotalProfit())*7+2608+1910-9100 + " " +"DKK of profit");
+        int PLTR = 2037;
+        System.out.println((taxCalculatorNVO.getTotalProfit()+taxcalculatorCLSK.getTotalProfit())*7+2608+1910-9100 + PLTR + " " +"DKK of profit");
     }
 
 }

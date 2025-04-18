@@ -273,7 +273,6 @@ class App:
             print(f"Unexpected error while getting news links: {e}")
             return []
         
-        
     def open_day_details_window(self, year: int, month: int, day: int, stock: str) -> None:
         """Open a window showing detailed stock data for a specific day.
         Args:
@@ -281,7 +280,6 @@ class App:
             month: The month of the stock data (1-12)
             day: The day of the stock data
             stock: The stock symbol to display data for
-            
         This method:
         1. Registers the Edge browser if available
         2. Creates a new window with stock details
@@ -293,12 +291,12 @@ class App:
             webbrowser.register("edge", None, webbrowser.BackgroundBrowser(self.path))
         else:
             print("Microsoft Edge not found at default paths.")
-            
+ 
         # Get stock data
         btc_mined:float = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data_2024)
         day_window = tk.Toplevel(self.root)
         day_window.title(f"Stock Details for {stock} - {year}-{month:02d}-{day:02d}")
-        
+
         # Fetch various data points
         data = self.stock_reader_instance.get_data_for_day(year, month, day, stock)
         start_date = f"{year}-{month}-{day}"
@@ -337,7 +335,7 @@ class App:
             tk.Label(day_window, text=f"Volume: {volume:,}", font=("Arial", 12)).pack(pady=2)
             tk.Label(day_window, text=f"20-day ma: {ma20:,}", font=("Arial", 12)).pack(pady=2)
             tk.Label(day_window, text=f"50-day ma: {ma50:,}", font=("Arial", 12)).pack(pady=2)
-            
+
             # Display BTC mined for CLSK
             if stock == "CLSK":
                 tk.Label(day_window, text=f"BTC mined: {btc_mined:,}", font=("Arial", 12)).pack(pady=2)
@@ -348,6 +346,7 @@ class App:
                     fg="blue",
                     cursor="hand2"
                 )
+                
                 link.pack(pady=1)
                 link.bind(
                     "<Button-1>",
@@ -397,8 +396,9 @@ class App:
             self.web_scraper_instance.scrape_bitcoin_address()
         # Scrape earnings for any stock
         self.web_scraper_instance.scrape_earnings()
+        
     
-
+   
     def get_sentiment_data(self) -> None:
         """Retrieve and display sentiment data for the current day.
         This method:
