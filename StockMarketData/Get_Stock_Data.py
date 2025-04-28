@@ -1,5 +1,6 @@
 from datetime import datetime
-from constants import DateConstants
+from constants import stock_market_holidays
+from pre_market import get_pre_market_price_ticker
 import pandas as pd
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -269,8 +270,9 @@ class stock_reader:
 
         month_weeks = self.get_non_weekend_weeks(year,month)
         
-        d = DateConstants()
-        stock_market_holidays = d.stock_market_holidays(year)
+        stock_market_holidays_list = stock_market_holidays(year)
+        pre_market_price = get_pre_market_price_ticker(stock)
+
         # Track the index for price differences and percentages
         idx = 0
         rectangles_by_day = {}
@@ -284,9 +286,29 @@ class stock_reader:
                     day_rect = plt.Rectangle((day_idx, -week_idx), 1, -1, color="white")
 
                 ax.add_patch(day_rect)
-                current_date = pd.Timestamp(year=year, month=month, day=day)
 
-                    # Check if current_date is in the trading days
+                current_date = pd.Timestamp(year=year, month=month, day=day)
+                if current_date.normalize() == pd.Timestamp.today().normalize() and current_date not in trading_days:
+                        # Check if current_date is in the trading days
+                    if pre_market_price is not None: 
+                        percentage_change = round((pre_market_price / self.get_last_trading_day_close(year, month, stock)) * 100 - 100, 2)
+                        if percentage_change > 0:
+                                color = 'green'
+                        elif percentage_change< 0:
+                                color = 'red'
+                        else:
+                            color = 'grey'
+                        
+                        day_rect.set_facecolor(color)
+                        # Store the rectangle in the dictionary with the day as the key
+                        rectangles_by_day[day] = day_rect
+                        # Add text for the day and percentage change
+                        ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=9, weight='bold')
+                        ax.text(day_idx + 0.5, -week_idx - 1, f'{pre_market_price}', ha='center', va='bottom', fontsize=9)
+                        ax.text(day_idx + 0.5, -week_idx - 0.7, f'{percentage_change}%', ha='center', va='center', fontsize=9)
+                    
+
+
                 if current_date in trading_days:
                         if idx < len(price_differences):
                             price_diff = price_differences[idx]
@@ -321,11 +343,11 @@ class stock_reader:
                     ax.text(day_idx + 0.5, -week_idx - 0.5, str(earnings_dates[current_date] + " " + "earnings date"),
                             ha='center', va='center', fontsize=5, weight='bold', color='black')
 
-                elif current_date in stock_market_holidays:
+                elif current_date in stock_market_holidays_list:
                     # Place a grey square for the holiday
                     day_rect.set_facecolor("grey")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
-                    ax.text(day_idx + 0.5, -week_idx - 0.5, str(stock_market_holidays[current_date]),
+                    ax.text(day_idx + 0.5, -week_idx - 0.5, str(stock_market_holidays_list[current_date]),
                             ha='center', va='center', fontsize=5, weight='bold', color='black')
                     
                 elif current_date in cpi_data:
@@ -381,5 +403,4 @@ class stock_reader:
             return plt
         else:  # Show the plot if we want to get a monthly view
             plt.show()
-
 

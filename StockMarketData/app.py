@@ -7,19 +7,20 @@ import tkinter as tk
 import pandas as pd
 import yfinance as yf
 import webbrowser
+from pre_market import get_pre_market_price_ticker
 import os
 import json
 from datetime import datetime
 from web_scraper import web_scraper
 import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 class App:
     """Main application class for the Stock Data Calendar Viewer.
-    
+
     This class handles the GUI and business logic for viewing and analyzing stock data.
     It provides functionality for viewing stock calendars, portfolio details, and news data.
     """
-    
     def __init__(self, root: tk.Tk) -> None:
         """Initialize the application.
         Args:
@@ -36,7 +37,6 @@ class App:
         self.get_sentiment_data()
     def populate_main_screen(self) -> None:
         """Populate the main screen with stock selection, date selection, and action buttons.
-        
         This method creates the main interface components including:
         - Stock selection dropdown
         - Year and month selection dropdowns
@@ -46,11 +46,10 @@ class App:
         # Clear the main frame
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-            
         # Stock selection
         stock_frame = tk.Frame(self.main_frame, pady=5)
         stock_frame.grid(row=0, column=0, sticky="w")
-        
+
         tk.Label(stock_frame, text="Select stock:").grid(row=0, column=0, padx=5, pady=5)
         self.stock_entry = ttk.Combobox(
             stock_frame, 
@@ -68,11 +67,11 @@ class App:
             command=self.re_populate_screen
         )
         self.navigate_button.grid(row=0, column=5, padx=2, pady=2)
-        
+
         # Year and Month selection
         date_frame = tk.Frame(self.main_frame, pady=5)
         date_frame.grid(row=1, column=0, sticky="w")
-        
+
         tk.Label(date_frame, text="Select Year:").grid(row=0, column=0, padx=5, pady=5)
         self.year_entry = ttk.Combobox(
             date_frame, 
@@ -183,7 +182,7 @@ class App:
                 ))
             }
         }
-        
+
         # Calculate portfolio value
         total_value: float = sum(stock["shares"] * stock["price"] for stock in portfolio.values())
         
@@ -291,13 +290,19 @@ class App:
             webbrowser.register("edge", None, webbrowser.BackgroundBrowser(self.path))
         else:
             print("Microsoft Edge not found at default paths.")
- 
         # Get stock data
         btc_mined:float = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data_2024)
         day_window = tk.Toplevel(self.root)
         day_window.title(f"Stock Details for {stock} - {year}-{month:02d}-{day:02d}")
-
         # Fetch various data points
+        today = datetime.now()
+        is_today = (today.year == year and today.month == month and today.day == day)
+        pre_market_price = get_pre_market_price_ticker(stock)
+        if is_today and pre_market_price is not None:
+        # ➔ TODAY: Show pre-market data
+            tk.Label(day_window, text=f"Today (Pre-Market) - {stock}", font=("Arial", 14)).pack(pady=5)
+            tk.Label(day_window, text=f"Pre-Market Price: ${pre_market_price:.2f}", font=("Arial", 12)).pack(pady=5)
+
         data = self.stock_reader_instance.get_data_for_day(year, month, day, stock)
         start_date = f"{year}-{month}-{day}"
         sentiment_data = self.stock_reader_instance.get_sentiment(stock, start_date, start_date)
@@ -307,6 +312,7 @@ class App:
             stock,
             ma20=True
         )
+        #print((datetime.strptime(self.stock_reader_instance.end_date, "%Y-%m-%d") - timedelta(days=200)).strftime("%Y-%m-%d"))
         ma50 = self.stock_reader_instance.get_moving_average(
             self.stock_reader_instance.start_date,
             self.stock_reader_instance.end_date,
@@ -314,7 +320,6 @@ class App:
             ma20=False
         )
 
-    
         # Get news links if available
         links: List[str] = self.get_news_links_for_month(year, month) if stock == "CLSK" else []
 
@@ -341,18 +346,29 @@ class App:
                 tk.Label(day_window, text=f"BTC mined: {btc_mined:,}", font=("Arial", 12)).pack(pady=2)
                 link = tk.Label(
                     day_window,
-                    text="Click me to see the total network hashrate",
+                    text="Click here to see the total network hashrate",
                     font=("Arial", 10),
                     fg="blue",
                     cursor="hand2"
                 )
-                
                 link.pack(pady=1)
                 link.bind(
                     "<Button-1>",
                     lambda e, url="https://minerstat.com/coin/BTC/network-hashrate": webbrowser.get("edge").open(url)
                 )
-            
+                
+                link = tk.Label(
+                    day_window,
+                    text="Click here to see the bitcoin mining address",
+                    font=("Arial", 10),
+                    fg="blue",
+                    cursor="hand2"
+                )
+                link.pack(pady=1)
+                link.bind(
+                    "<Button-1>",
+                    lambda e, url="https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab": webbrowser.get("edge").open(url)
+                )
             # Handle sentiment data
             if sentiment_data is not None:
                 sentiment, urls = sentiment_data
@@ -370,7 +386,6 @@ class App:
                         )
                         link.pack(pady=1)
                         link.bind("<Button-1>", lambda e, url=url: webbrowser.get("edge").open(url))
-
                 for lnk in links:
                     link = tk.Label(
                         day_window,
@@ -394,11 +409,10 @@ class App:
         if self.stock_entry == "CLSK":
             self.web_scraper_instance.scrape_articles()
             self.web_scraper_instance.scrape_bitcoin_address()
-        # Scrape earnings for any stock
+        # Scrape earnings date for any stock
         self.web_scraper_instance.scrape_earnings()
-        
-    
-   
+
+
     def get_sentiment_data(self) -> None:
         """Retrieve and display sentiment data for the current day.
         This method:
@@ -416,7 +430,7 @@ class App:
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Could not retrieve the data: {e}")
         if sentiment_data[0]["date"] != current_date:
-
+            
             sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(
                 self.web_scraper_instance.sentiment_url
             )
