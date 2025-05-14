@@ -22,7 +22,7 @@ jobs:
         run: git pull origin main  # replace 'main' if your default branch differs
 
       - name: Run webscrape script
-        run: web_scraper.py
+        run: python web_scraper.py
 
       - name: Configure Git
         run: |
