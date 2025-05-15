@@ -456,7 +456,7 @@ class web_scraper:
             # Scroll progressively inside the scrollable table
             unchanged_attempts = 0
             prev_row_count = 0
-
+            
             self.driver.execute_script("arguments[0].scrollBy(0, 20);", scroll_container)
             time.sleep(1)
             rows = self.driver.find_elements(By.CSS_SELECTOR, ".ant-table-row")
@@ -473,6 +473,8 @@ class web_scraper:
 
             # ✅ Scroll the main page to load the lower table with the Total row
             self.driver.execute_script("window.scrollBy(0, 1500);")
+            
+            print("Scrolling down the page...")
 
             # Optionally scroll .ant-table-body to bottom
             self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
