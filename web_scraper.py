@@ -46,7 +46,10 @@ class web_scraper:
     def setup_driver(self):
         """Sets up the headless Chrome driver."""
         options = Options()
-        options.headless = True
+        options.add_argument("--headless=new")  # ✅ Modern headless mode
+        options.add_argument("--window-size=1920,1080")
+        
+    
 
         if platform.system() == "Windows":
             path = "chromedriver.exe"
@@ -559,7 +562,7 @@ class web_scraper:
         self.driver.quit()
         time.sleep(2)
         self.scrape_bitcoin_address()
-        
+
 # Only execute when this script is run directly
 if __name__ == "__main__":
     stock_name = "CLSK"
