@@ -16,8 +16,6 @@ import time
 from selenium.webdriver.support import expected_conditions as EC
 import platform
 
-
-
 class TextPresentInElement(object):
     def __init__(self, locator):
         self.locator = locator
@@ -120,46 +118,47 @@ class web_scraper:
 
         return new_cpi
 
-    def scrape_fear_greed_index(self,url):
-        
-        self.driver.get(url)
-            # 📸 Save a screenshot and page source for debugging
-        self.driver.save_screenshot("fear_greed_debug.png")
-        with open("page_source.html", "w", encoding="utf-8") as f:
-            f.write(self.driver.page_source)
+    def scrape_fear_greed_index(self, api_url):
+        import requests
 
         existing_values = []
+        
+        # Load existing data if file exists
         if os.path.exists(self.json_file_path_fear_greed):
             with open(self.json_file_path_fear_greed, "r", encoding="utf-8") as file:
                 print("Loaded .json file...")
                 existing_values = json.load(file)
 
-        print("Trying to get the data...")
+        print("Fetching Fear & Greed index from API...")
         try:
-            time.sleep(6)
-            locator = (By.CLASS_NAME, "market-fng-gauge__dial-number-value")
-            WebDriverWait(self.driver, 30).until(EC.presence_of_element_located(locator))
-            elements = self.driver.find_elements(By.CLASS_NAME, "market-fng-gauge__dial-number-value")
-            for el in elements:
-                value = el.text.strip()
-                if value:
-                    data = []
-                    #Save to JSON file
-                    data.append({
-                        "date": datetime.now().strftime("%Y-%m-%d"),
-                        "fear_greed_index": value
-                    })
-                    if data[0] ["date"] ==existing_values[0]["date"]:
-                        break
-                    with open(self.json_file_path_fear_greed, "w") as json_file:
-                        json.dump(data+existing_values, json_file, indent=4)
+            response = requests.get(api_url, timeout=10)
+            response.raise_for_status()  # Raises HTTPError for bad responses
 
-                    return value
-            return None
-        
+            data = response.json()["data"][0]
+            value = data["value"]
+            date = datetime.utcfromtimestamp(int(data["timestamp"])).strftime('%Y-%m-%d')
+
+            # Don't duplicate today's entry
+            if existing_values and existing_values[0]["date"] == date:
+                print("Entry for today already exists.")
+                return value
+
+            # Save to JSON
+            new_entry = {
+                "date": date,
+                "fear_greed_index": value
+            }
+
+
+            with open(self.json_file_path_fear_greed, "w", encoding="utf-8") as json_file:
+                json.dump([new_entry] + existing_values, json_file, indent=4)
+
+            return value
+
         except Exception as e:
-            print(f"Error scraping Fear & Greed index: {e}")
+            print(f"Error fetching Fear & Greed index: {e}")
             return None
+
         
     def scrape_earnings(self):
         """Scrapes earnings dates, updates changes, and saves them to a JSON file."""
@@ -568,16 +567,14 @@ class web_scraper:
         from datetime import datetime
         def log(msg): print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
 
-
         self.driver = self.setup_driver()
         try:
             log("🔍 Starting Fear & Greed index scrape...")
-            self.scrape_fear_greed_index(self.sentiment_url)
+            self.scrape_fear_greed_index("https://api.alternative.me/fng/")
             log("✅ Finished Fear & Greed index.")
-
-            log("🔍 Starting Coinglass scrape...")
-            self.scrape_coinglass_change()
-            log("✅ Finished Coinglass.")
+            # log("🔍 Starting Coinglass scrape...")
+            # self.scrape_coinglass_change()
+            # log("✅ Finished Coinglass.")
 
         finally:
             self.driver.quit()
