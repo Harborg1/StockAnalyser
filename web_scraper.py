@@ -560,11 +560,20 @@ class web_scraper:
             pass
 
     def scrape_useful_data(self):
+        from datetime import datetime
+        def log(msg): print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
+
+
         self.driver = self.setup_driver()
         try:
+            log("🔍 Starting Fear & Greed index scrape...")
             self.scrape_fear_greed_index(self.sentiment_url)
+            log("✅ Finished Fear & Greed index.")
+
+            log("🔍 Starting Coinglass scrape...")
             self.scrape_coinglass_change()
-            self.scrape_bitcoin_address()
+            log("✅ Finished Coinglass.")
+
         finally:
             self.driver.quit()
 
