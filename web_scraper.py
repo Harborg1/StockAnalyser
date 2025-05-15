@@ -16,7 +16,6 @@ import time
 from selenium.webdriver.support import expected_conditions as EC
 import platform
 
-
 class TextPresentInElement(object):
     def __init__(self, locator):
         self.locator = locator
@@ -44,20 +43,18 @@ class web_scraper:
         self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
 
     def setup_driver(self):
+        """Sets up the headless Chrome driver."""
         options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-
-        # Determine chromedriver path based on OS
+        options.headless = True
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:
             path = "/usr/bin/chromedriver"  # Ubuntu/Linux GitHub runner
 
-        service = Service(executable_path=path)
+        service = Service(executable_path=path)  # Update with your chromedriver path
         self.driver = webdriver.Chrome(service=service, options=options)
         return self.driver
+    
     def scrape_cpi(self):
         self.setup_driver()
         self.driver.get(self.cpi_url)
@@ -79,6 +76,7 @@ class web_scraper:
             self.driver.quit()
             return []
     
+
         
         # Select rows with CPI data from both odd and even rows
         cpi_rows = soup.select(".release-list-odd-row, .release-list-even-row")
@@ -551,14 +549,21 @@ class web_scraper:
         finally:
             self.driver.quit()
 
+    def scrape_useful_data(self):
+        self.scrape_fear_greed_index(scraper.sentiment_url)
+        time.sleep(5)
+        self.scrape_coinglass_change()
+        time.sleep(5)
+        self.scrape_bitcoin_address()
+        
 # Only execute when this script is run directly
 if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
-    scraper.scrape_bitcoin_address()
-    scraper.scrape_coinglass_change()
-    fear_greed_value = scraper.scrape_fear_greed_index(scraper.sentiment_url)
+    # scraper.scrape_bitcoin_address()
+    # scraper.scrape_coinglass_change()
+    scraper.scrape_useful_data()
     # print(f"Fear & Greed Index: {fear_greed_value}")
     #scraper.scrape_bitcoin_address_all_time()
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
