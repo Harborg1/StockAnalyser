@@ -86,7 +86,6 @@ class web_scraper:
             self.driver.quit()
             return []
     
-
         
         # Select rows with CPI data from both odd and even rows
         cpi_rows = soup.select(".release-list-odd-row, .release-list-even-row")
@@ -117,47 +116,6 @@ class web_scraper:
             print("No new CPI dates found")
 
         return new_cpi
-
-    def scrape_fear_greed_index(self, api_url):
-        import requests
-
-        existing_values = []
-        
-        # Load existing data if file exists
-        if os.path.exists(self.json_file_path_fear_greed):
-            with open(self.json_file_path_fear_greed, "r", encoding="utf-8") as file:
-                print("Loaded .json file...")
-                existing_values = json.load(file)
-
-        print("Fetching Fear & Greed index from API...")
-        try:
-            response = requests.get(api_url, timeout=10)
-            response.raise_for_status()  # Raises HTTPError for bad responses
-
-            data = response.json()["data"][0]
-            value = data["value"]
-            date = datetime.utcfromtimestamp(int(data["timestamp"])).strftime('%Y-%m-%d')
-
-            # Don't duplicate today's entry
-            if existing_values and existing_values[0]["date"] == date:
-                print("Entry for today already exists.")
-                return value
-
-            # Save to JSON
-            new_entry = {
-                "date": date,
-                "fear_greed_index": value
-            }
-
-
-            with open(self.json_file_path_fear_greed, "w", encoding="utf-8") as json_file:
-                json.dump([new_entry] + existing_values, json_file, indent=4)
-
-            return value
-
-        except Exception as e:
-            print(f"Error fetching Fear & Greed index: {e}")
-            return None
 
         
     def scrape_earnings(self):
@@ -569,13 +527,9 @@ class web_scraper:
 
         self.driver = self.setup_driver()
         try:
-            log("🔍 Starting Fear & Greed index scrape...")
-            self.scrape_fear_greed_index("https://api.alternative.me/fng/")
-            log("✅ Finished Fear & Greed index.")
-            # log("🔍 Starting Coinglass scrape...")
-            # self.scrape_coinglass_change()
-            # log("✅ Finished Coinglass.")
-
+            log("🔍 Starting Coinglass scrape...")
+            self.scrape_coinglass_change()
+            log("✅ Finished Coinglass.")
 
         finally:
             self.driver.quit()
