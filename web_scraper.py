@@ -449,6 +449,9 @@ class web_scraper:
         json_path = "json_folder\\coinglass_balance_24h_change.json"
         self.driver.get(url)
         try:
+             # ✅ Scroll the main page to load the lower table with the Total row
+            self.driver.execute_script("window.scrollBy(0, 1500);")
+            
             # Wait for the scrollable table container to appear
             scroll_container = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "ant-table-body"))
@@ -470,11 +473,6 @@ class web_scraper:
             if unchanged_attempts >= 3:
                 print("Scrolling complete — all rows likely loaded.")
             prev_row_count = current_row_count
-
-            # ✅ Scroll the main page to load the lower table with the Total row
-            self.driver.execute_script("window.scrollBy(0, 1500);")
-            
-            print("Scrolling down the page...")
 
             # Optionally scroll .ant-table-body to bottom
             self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
