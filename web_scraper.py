@@ -47,6 +47,7 @@ class web_scraper:
         """Sets up the headless Chrome driver."""
         options = Options()
         options.headless=True
+        options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")
 
         if platform.system() == "Windows":
             path = "chromedriver.exe"
