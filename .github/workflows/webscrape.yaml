@@ -35,5 +35,12 @@ jobs:
     - name: Install Python dependencies
       run: pip install -r requirements.txt
 
+    - name: Print Chrome + Driver Info
+      run: 
+          which google-chrome
+          google-chrome --version
+          which chromedriver
+          chromedriver --version
+
     - name: Run scraper
       run: python web_scraper.py
