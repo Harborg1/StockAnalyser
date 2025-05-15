@@ -44,14 +44,21 @@ class web_scraper:
         self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
 
     def setup_driver(self):
-        """Sets up the headless Chrome driver."""
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.chrome.service import Service
+        import platform, uuid, os
+
         options = Options()
-        options.headless=True
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
 
-            # 🧪 DEBUG: Print all arguments before starting driver
+        # ✅ Force a unique temp user-data-dir to avoid all conflicts
+        user_data_dir = f"/tmp/chrome-profile-{uuid.uuid4()}"
+        os.makedirs(user_data_dir, exist_ok=True)
+        options.add_argument(f"--user-data-dir={user_data_dir}")
+
         print("🧪 Chrome options passed to driver:")
         for arg in options.arguments:
             print("   ", arg)
@@ -59,11 +66,12 @@ class web_scraper:
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:
-            path = "/usr/bin/chromedriver"  # Ubuntu/Linux GitHub runner
+            path = "/usr/bin/chromedriver"
 
-        service = Service(executable_path=path)  # Update with your chromedriver path
+        service = Service(executable_path=path)
         self.driver = webdriver.Chrome(service=service, options=options)
         return self.driver
+
     
     def scrape_cpi(self):
         self.setup_driver()

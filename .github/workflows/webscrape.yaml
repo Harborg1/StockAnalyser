@@ -42,10 +42,11 @@ jobs:
           which chromedriver
           chromedriver --version
 
-    - name: Kill any stray Chrome processes
+    - name: Kill stray Chrome processes and clean temp profiles
       run: |
         pkill chrome || true
         pkill chromedriver || true
+        rm -rf /tmp/chrome-profile-* || true
 
     - name: Run scraper
       run: python web_scraper.py
