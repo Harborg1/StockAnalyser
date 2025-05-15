@@ -51,6 +51,11 @@ class web_scraper:
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
 
+            # 🧪 DEBUG: Print all arguments before starting driver
+        print("🧪 Chrome options passed to driver:")
+        for arg in options.arguments:
+            print("   ", arg)
+
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:

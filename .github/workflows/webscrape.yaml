@@ -41,7 +41,7 @@ jobs:
           google-chrome --version
           which chromedriver
           chromedriver --version
-          
+
     - name: Kill any stray Chrome processes
       run: |
         pkill chrome || true
@@ -49,5 +49,4 @@ jobs:
 
     - name: Run scraper
       run: python web_scraper.py
-    - name: Run scraper
-      run: python web_scraper.py
+  
