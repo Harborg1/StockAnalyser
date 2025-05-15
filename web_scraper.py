@@ -50,11 +50,7 @@ class web_scraper:
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
-        import uuid
-        unique_tmp_dir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
-        options.add_argument(f"--user-data-dir={unique_tmp_dir}")
-        
-      
+
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:
@@ -555,12 +551,13 @@ class web_scraper:
             pass
 
     def scrape_useful_data(self):
-        self.setup_driver()
-        self.scrape_fear_greed_index(self.sentiment_url)
-        self.scrape_coinglass_change()
-        self.scrape_bitcoin_address()
-        self.driver.quit()
-
+        self.driver = self.setup_driver()
+        try:
+            self.scrape_fear_greed_index(self.sentiment_url)
+            self.scrape_coinglass_change()
+            self.scrape_bitcoin_address()
+        finally:
+            self.driver.quit()
 
 # Only execute when this script is run directly
 if __name__ == "__main__":
