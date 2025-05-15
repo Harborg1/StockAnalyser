@@ -15,7 +15,8 @@ from datetime import datetime
 import time
 from selenium.webdriver.support import expected_conditions as EC
 import platform
-import tempfile
+
+
 
 class TextPresentInElement(object):
     def __init__(self, locator):
@@ -44,10 +45,6 @@ class web_scraper:
         self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
 
     def setup_driver(self):
-        from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.chrome.service import Service
-        import platform
-
         options = Options()
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
