@@ -47,7 +47,7 @@ class web_scraper:
         """Sets up the headless Chrome driver."""
         options = Options()
         options.headless = True
-        
+
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:
@@ -553,8 +553,10 @@ class web_scraper:
 
     def scrape_useful_data(self):
         self.scrape_fear_greed_index(scraper.sentiment_url)
+        self.driver.quit()
         time.sleep(5)
         self.scrape_coinglass_change()
+        self.driver.quit()
         time.sleep(5)
         self.scrape_bitcoin_address()
         
