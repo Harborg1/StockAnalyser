@@ -6,7 +6,7 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -21,8 +21,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y google-chrome-stable
         sudo apt-get install -yqq chromium-chromedriver
+        if [ ! -f /usr/bin/chromedriver ]; then
         sudo ln -s /usr/lib/chromium-browser/chromedriver /usr/bin/chromedriver
-
+        fi
+        
     - name: Install Python dependencies
       run: pip install -r requirements.txt
 
