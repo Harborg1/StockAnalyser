@@ -134,7 +134,7 @@ class web_scraper:
         try:
             time.sleep(6)
             locator = (By.CLASS_NAME, "market-fng-gauge__dial-number-value")
-            WebDriverWait(self.driver, 15).until(EC.presence_of_element_located(locator))
+            WebDriverWait(self.driver, 30).until(EC.presence_of_element_located(locator))
             elements = self.driver.find_elements(By.CLASS_NAME, "market-fng-gauge__dial-number-value")
             for el in elements:
                 value = el.text.strip()
