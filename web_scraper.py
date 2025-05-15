@@ -14,6 +14,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import time
 from selenium.webdriver.support import expected_conditions as EC
+import platform
+
 
 class TextPresentInElement(object):
     def __init__(self, locator):
@@ -42,10 +44,18 @@ class web_scraper:
         self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
 
     def setup_driver(self):
-        """Sets up the headless Chrome driver."""
         options = Options()
-        options.headless = True
-        service = Service(executable_path="chromedriver.exe")  # Update with your chromedriver path
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
+        # Determine chromedriver path based on OS
+        if platform.system() == "Windows":
+            path = "chromedriver.exe"
+        else:
+            path = "/usr/bin/chromedriver"  # Ubuntu/Linux GitHub runner
+
+        service = Service(executable_path=path)
         self.driver = webdriver.Chrome(service=service, options=options)
         return self.driver
     def scrape_cpi(self):
