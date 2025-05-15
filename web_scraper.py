@@ -51,6 +51,7 @@ class web_scraper:
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0 Safari/537.36")
 
         print("🧪 Chrome options passed to driver:")
         for arg in options.arguments:
