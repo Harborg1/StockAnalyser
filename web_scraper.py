@@ -47,8 +47,14 @@ class web_scraper:
         """Sets up the headless Chrome driver."""
         options = Options()
         options.headless=True
-        options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")
-
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        import uuid
+        unique_tmp_dir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        options.add_argument(f"--user-data-dir={unique_tmp_dir}")
+        
+      
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:
