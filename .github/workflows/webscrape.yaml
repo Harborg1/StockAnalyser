@@ -57,6 +57,7 @@ jobs:
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git add json_folder/coinglass_balance_24h_change.json
+        git add coinglass_screenshot.png
         git commit -m "Update Fear & Greed data [bot]" || echo "No changes to commit"
         git push
       env:

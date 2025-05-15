@@ -168,9 +168,10 @@ class App:
                     datetime.now().month,
                     stocks[1]
                 ))
+                
             },
             stocks[2]: {
-                "shares": 900,
+                "shares": 300,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -187,8 +188,13 @@ class App:
             }
         }
 
+        dkigi_value = portfolio["DKIGI.CO"]["shares"] * portfolio["DKIGI.CO"]["price"]*usd_dkk
+        print("The value is",dkigi_value)
         # Calculate portfolio value
-        total_value: float = sum(stock["shares"] * stock["price"] for stock in portfolio.values())*usd_dkk
+        nordnet_value: float = sum(stock["shares"] * stock["price"] for stock in portfolio.values())*usd_dkk-dkigi_value
+        db_value = dkigi_value
+        total_value = nordnet_value+db_value
+
         # Back button (Top-left corner)
         tk.Button(
             self.main_frame,
@@ -196,15 +202,28 @@ class App:
             font=("Arial", 12),
             command=self.populate_main_screen
         ).grid(row=0, column=0, sticky="w", padx=10, pady=10)
-        
+    
         # Display portfolio value
         tk.Label(
             self.main_frame,
-            text=f"Portfolio Value: {total_value:,.2f}DKK",
+            text=f"NordNet Value: {nordnet_value:,.2f}DKK",
             font=("Arial", 16),
             fg="green"
         ).grid(row=3, column=0)
-        
+        tk.Label(
+            self.main_frame,
+            text=f"db_value: {db_value:,.2f}DKK",
+            font=("Arial", 16),
+            fg="green"
+        ).grid(row=4, column=0)
+        tk.Label(
+            self.main_frame,
+            text=f"total value: {total_value:,.2f}DKK",
+            font=("Arial", 16),
+            fg="green"
+        ).grid(row=5, column=0)
+
+
         # Prepare data for the pie chart
         labels: List[str] = list(portfolio.keys())
         sizes: List[float] = [stock["shares"] * stock["price"] for stock in portfolio.values()]
