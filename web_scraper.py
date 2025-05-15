@@ -130,7 +130,10 @@ class web_scraper:
         existing_values = []
         if os.path.exists(self.json_file_path_fear_greed):
             with open(self.json_file_path_fear_greed, "r", encoding="utf-8") as file:
+                print("Loaded .json file...")
                 existing_values = json.load(file)
+
+        print("Trying to get the data...")
         try:
             time.sleep(6)
             locator = (By.CLASS_NAME, "market-fng-gauge__dial-number-value")
