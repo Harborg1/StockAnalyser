@@ -46,10 +46,7 @@ class web_scraper:
     def setup_driver(self):
         """Sets up the headless Chrome driver."""
         options = Options()
-        options.add_argument("--headless=new")  # ✅ Modern headless mode
-        options.add_argument("--window-size=1920,1080")
-        
-    
+        options.headless=True
 
         if platform.system() == "Windows":
             path = "chromedriver.exe"
@@ -114,8 +111,7 @@ class web_scraper:
         return new_cpi
 
     def scrape_fear_greed_index(self,url):
-        if self.driver is None:
-            self.setup_driver()
+        
         self.driver.get(url)
 
         existing_values = []
@@ -140,7 +136,7 @@ class web_scraper:
                         break
                     with open(self.json_file_path_fear_greed, "w") as json_file:
                         json.dump(data+existing_values, json_file, indent=4)
-                    self.driver.quit()
+
                     return value
             return None
         
@@ -275,7 +271,6 @@ class web_scraper:
         print(f"Target count (days difference): {target_count}")
         url = "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab"
         json_file_path = self.bitcoin_data_2024
-        self.setup_driver()
         self.driver.get(url)
         existing_data = []
             # Delete the existing JSON file if it exists
@@ -346,7 +341,6 @@ class web_scraper:
                 print(f"Target count of {target_count} data points reached.")
                 break
         print(f"Total clicks performed: {total_clicks}")
-        self.driver.quit()
         return existing_data
 
     def scrape_bitcoin_address_all_time(self):
@@ -479,7 +473,6 @@ class web_scraper:
         """Scrapes the 24h Change value from Coinglass Balance page and saves to JSON."""
         url = "https://www.coinglass.com/Balance"
         json_path = "json_folder\\coinglass_balance_24h_change.json"
-        self.setup_driver()
         self.driver.get(url)
         try:
             # Wait for the scrollable table container to appear
@@ -552,16 +545,15 @@ class web_scraper:
         except Exception as e:
             print(f"Failed to scrape the data...: {e}")
         finally:
-            self.driver.quit()
+            pass
 
     def scrape_useful_data(self):
-        self.scrape_fear_greed_index(scraper.sentiment_url)
-        self.driver.quit()
-        time.sleep(2)
+        self.setup_driver()
+        self.scrape_fear_greed_index(self.sentiment_url)
         self.scrape_coinglass_change()
-        self.driver.quit()
-        time.sleep(2)
         self.scrape_bitcoin_address()
+        self.driver.quit()
+
 
 # Only execute when this script is run directly
 if __name__ == "__main__":
