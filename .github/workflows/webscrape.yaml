@@ -36,7 +36,7 @@ jobs:
       run: pip install -r requirements.txt
 
     - name: Print Chrome + Driver Info
-      run: 
+      run: |
           which google-chrome
           google-chrome --version
           which chromedriver
