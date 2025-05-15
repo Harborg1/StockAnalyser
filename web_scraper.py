@@ -122,6 +122,10 @@ class web_scraper:
     def scrape_fear_greed_index(self,url):
         
         self.driver.get(url)
+            # 📸 Save a screenshot and page source for debugging
+        self.driver.save_screenshot("fear_greed_debug.png")
+        with open("page_source.html", "w", encoding="utf-8") as f:
+            f.write(self.driver.page_source)
 
         existing_values = []
         if os.path.exists(self.json_file_path_fear_greed):

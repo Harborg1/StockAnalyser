@@ -37,10 +37,10 @@ jobs:
 
     - name: Print Chrome + Driver Info
       run: |
-          which google-chrome
-          google-chrome --version
-          which chromedriver
-          chromedriver --version
+        which google-chrome
+        google-chrome --version
+        which chromedriver
+        chromedriver --version
 
     - name: Kill stray Chrome processes and clean temp profiles
       run: |
@@ -50,4 +50,11 @@ jobs:
 
     - name: Run scraper
       run: python web_scraper.py
-  
+
+    - name: Upload fear & greed debug artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: fear_greed_debug
+        path: |
+          fear_greed_debug.png
+          page_source.html
