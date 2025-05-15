@@ -1,7 +1,9 @@
 name: Run Fear & Greed Scraper
 
 on:
-  workflow_dispatch:
+  schedule:
+    - cron: '* * * * *'  # Every minute (Note: GitHub may delay runs to every 5 minutes)
+  workflow_dispatch:      # Still allows manual triggering
 
 jobs:
   run-scraper:
