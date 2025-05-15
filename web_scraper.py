@@ -576,6 +576,7 @@ class web_scraper:
             # self.scrape_coinglass_change()
             # log("✅ Finished Coinglass.")
 
+
         finally:
             self.driver.quit()
 
