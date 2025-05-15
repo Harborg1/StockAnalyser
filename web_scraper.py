@@ -49,7 +49,7 @@ class web_scraper:
         import platform
 
         options = Options()
-        options.headless = True
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -67,8 +67,7 @@ class web_scraper:
         service = Service(executable_path=path)
         self.driver = webdriver.Chrome(service=service, options=options)
         return self.driver
-
-
+    
 
     def scrape_cpi(self):
         self.setup_driver()
