@@ -554,10 +554,10 @@ class web_scraper:
     def scrape_useful_data(self):
         self.scrape_fear_greed_index(scraper.sentiment_url)
         self.driver.quit()
-        time.sleep(5)
+        time.sleep(2)
         self.scrape_coinglass_change()
         self.driver.quit()
-        time.sleep(5)
+        time.sleep(2)
         self.scrape_bitcoin_address()
         
 # Only execute when this script is run directly
