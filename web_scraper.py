@@ -15,6 +15,7 @@ from datetime import datetime
 import time
 from selenium.webdriver.support import expected_conditions as EC
 import platform
+import tempfile
 
 class TextPresentInElement(object):
     def __init__(self, locator):
@@ -46,6 +47,9 @@ class web_scraper:
         """Sets up the headless Chrome driver."""
         options = Options()
         options.headless = True
+        user_data_dir = tempfile.mkdtemp()
+        options.add_argument(f"--user-data-dir={user_data_dir}")
+        
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:
