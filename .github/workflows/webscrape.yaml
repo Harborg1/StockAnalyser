@@ -16,20 +16,21 @@ jobs:
       with:
         python-version: '3.x'
 
-      
-    - name: Install Google Chrome (deb package)
+    - name: Install Google Chrome (no Snap)
       run: |
         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
         sudo apt-get update
         sudo apt install -y ./google-chrome-stable_current_amd64.deb
 
-    - name: Install Google Chrome and ChromeDriver
+    - name: Install matching ChromeDriver
       run: |
-        sudo apt-get update
-        sudo apt-get install -yqq chromium-chromedriver
-        if [ ! -f /usr/bin/chromedriver ]; then
-        sudo ln -s /usr/lib/chromium-browser/chromedriver /usr/bin/chromedriver
-        fi
+        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+        echo "Using Chrome version $CHROME_VERSION"
+        DRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_$CHROME_VERSION")
+        wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$DRIVER_VERSION/linux64/chromedriver-linux64.zip
+        unzip chromedriver-linux64.zip
+        sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
+        sudo chmod +x /usr/bin/chromedriver
 
     - name: Install Python dependencies
       run: pip install -r requirements.txt
