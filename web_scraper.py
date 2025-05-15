@@ -455,9 +455,10 @@ class web_scraper:
             self.driver.save_screenshot("coinglass_screenshot.png")
             
             # Wait for the scrollable table container to appear
-            scroll_container = WebDriverWait(self.driver, 20).until(
+            scroll_container = WebDriverWait(self.driver, 40).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "ant-table-body"))
             )
+
             # Scroll progressively inside the scrollable table
             unchanged_attempts = 0
             prev_row_count = 0
