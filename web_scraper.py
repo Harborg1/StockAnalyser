@@ -46,18 +46,13 @@ class web_scraper:
     def setup_driver(self):
         from selenium.webdriver.chrome.options import Options
         from selenium.webdriver.chrome.service import Service
-        import platform, uuid, os
+        import platform
 
         options = Options()
-        options.Headless=True
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
-
-        # ✅ Force a unique temp user-data-dir to avoid all conflicts
-        user_data_dir = f"/tmp/chrome-profile-{uuid.uuid4()}"
-        os.makedirs(user_data_dir, exist_ok=True)
-        options.add_argument(f"--user-data-dir={user_data_dir}")
 
         print("🧪 Chrome options passed to driver:")
         for arg in options.arguments:
@@ -72,7 +67,8 @@ class web_scraper:
         self.driver = webdriver.Chrome(service=service, options=options)
         return self.driver
 
-    
+
+
     def scrape_cpi(self):
         self.setup_driver()
         self.driver.get(self.cpi_url)
