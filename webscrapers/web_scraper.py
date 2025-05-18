@@ -441,7 +441,6 @@ class web_scraper:
         plt.tight_layout()
         plt.show()
 
-
     def scrape_coinglass_change(self):
         """Scrapes the 24h Change value from Coinglass Balance page and saves to JSON."""
         url = "https://www.coinglass.com/Balance"
@@ -476,9 +475,6 @@ class web_scraper:
             # Optionally scroll .ant-table-body to bottom
             self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
 
-            
-        
-
             self.driver.save_screenshot("coinglass_screenshot.png")
 
             # Collect visible elements
@@ -491,31 +487,18 @@ class web_scraper:
             "//td[@class='ant-table-cell' and @style='text-align: right;']/div"
         )
             
-    
             # Find first non-empty value from the end
             for i,el in enumerate(value_change):
                 text = el.text.strip()
-                if text:
-                    print("Text is",text, "index is",i)
-                    
-            # Find first non-empty value from the end
-            for el in value_change:
-                text = el.text.strip()
-                if text:
-                    val_chg = text
-                    break     
-            
+                if text and i==57: # The specific index we are looking for (24h change in bitcoin holdings)
+                    val_chg=text
+                    break
+
             for i,el in enumerate(BTC_available):
                 text = el.text.strip()
-                if text:
-                    print("Text is",text, "index is",i)
-               
-
-            for el in BTC_available:
-                text = el.text.strip()
-                if text:
+                if text and i==80: # The index where the bitcoin available the last 24h is at.
                     val_btc = text
-                    break  
+                    break
 
             data = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
