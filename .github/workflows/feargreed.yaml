@@ -22,7 +22,7 @@ jobs:
       run: pip install requests
 
     - name: Run scraper
-      run: python scrape_fear_greed.py
+      run: python webscrapers/scrape_fear_greed.py
 
     - name: Commit and push updated JSON
       run: |
