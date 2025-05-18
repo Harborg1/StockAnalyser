@@ -34,10 +34,8 @@ class web_scraper:
         self.earnings_url = f'https://www.nasdaq.com/market-activity/stocks/{self.stock_name}/earnings'
         self.cpi_url = "https://www.bls.gov/schedule/news_release/cpi.htm"
         self.sentiment_url = "https://edition.cnn.com/markets/fear-and-greed"
-    
         self.json_file_path_earnings = "json_folder\\stock_earnings.json"
         self.json_file_path_cpi = "json_folder\\cpi.json"
-        self.json_file_path_fear_greed = "json_folder\\feargreed.json"
         self.driver = None
         self.bitcoin_data = "json_folder\\bitcoin_address_data_all_time.json"
         self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
@@ -400,8 +398,8 @@ class web_scraper:
                 print(f"Skipping invalid value: {item['btc_mined']}")
         return total_sum
     
-    def calculate_btc_mined_per_month(self, json_file_path):
 
+    def calculate_btc_mined_per_month(self, json_file_path):
         if os.path.exists(json_file_path):
             with open(json_file_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
@@ -475,9 +473,7 @@ class web_scraper:
 
             # Optionally scroll .ant-table-body to bottom
             self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
-
-            self.driver.save_screenshot("coinglass_screenshot.png")
-
+        
             # Collect visible elements
             value_change = self.driver.find_elements(
                 By.XPATH,
