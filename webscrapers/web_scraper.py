@@ -444,8 +444,9 @@ class web_scraper:
     def scrape_coinglass_change(self):
         """Scrapes the 24h Change value from Coinglass Balance page and saves to JSON."""
         url = "https://www.coinglass.com/Balance"
-        json_path = "json_folder\\coinglass_balance_24h_change.json"
+        json_path = os.path.join("json_folder", "coinglass_balance_24h_change.json")
         self.driver.get(url)
+
         try:
              # ✅ Scroll the main page to load the lower table with the Total row
             self.driver.execute_script("window.scrollBy(0, 1500);")
