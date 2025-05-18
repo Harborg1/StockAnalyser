@@ -457,8 +457,6 @@ class web_scraper:
                 EC.presence_of_element_located((By.CLASS_NAME, "ant-table-body"))
             )
 
-            self.driver.save_screenshot("coinglass_screenshot.png")
-
             # Scroll progressively inside the scrollable table
             unchanged_attempts = 0
             prev_row_count = 0
@@ -480,7 +478,9 @@ class web_scraper:
             self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
 
             
-           
+        
+            self.driver.save_screenshot("coinglass_screenshot.png")
+
 
             # Collect visible elements
             value_change = self.driver.find_elements(
