@@ -47,7 +47,7 @@ jobs:
         rm -rf /tmp/chrome-profile-* || true
 
     - name: Run scraper
-      run: python webscrapers\web_scraper.py
+      run: python webscrapers/web_scraper.py
 
     - name: Commit and push updated JSON
       run: |
