@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Tuple, Any
-from Get_Stock_Data import stock_reader
-from Get_Crypto_Data import crypto_reader
+from stocks.Get_Stock_Data import stock_reader
+from stocks.Get_Crypto_Data import crypto_reader
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk            
@@ -11,7 +11,7 @@ from pre_market import get_pre_market_price_ticker
 import os
 import json
 from datetime import datetime
-from web_scraper import web_scraper
+from webscrapers.web_scraper import web_scraper
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -43,6 +43,7 @@ class App:
         - Action buttons for showing calendar and downloading
         - Sentiment display
         """
+
         # Clear the main frame
         for widget in self.main_frame.winfo_children():
             widget.destroy()
@@ -93,14 +94,13 @@ class App:
         button_frame = tk.Frame(self.main_frame, pady=10, padx=10)
         button_frame.grid(row=2, column=0, sticky="w")
         button_frame.grid_columnconfigure(1, minsize=120)
-        
         self.show_button = tk.Button(
             button_frame, 
             text="Show Calendar", 
             command=self.show_calendar
         )
         self.show_button.grid(row=1, column=0, padx=5, pady=5)
-        
+
         self.sentiment_text = tk.Text(button_frame, height=1, width=20)
         self.sentiment_text.grid(row=1, column=2, padx=5, pady=5)
         self.get_sentiment_data()
@@ -145,7 +145,7 @@ class App:
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
-        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO"]
+        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO","CASH"]
         usd_dkk: float = float(self.stock_reader_instance.get_last_trading_day_close(
             datetime.now().year, 
             datetime.now().month,
@@ -185,11 +185,13 @@ class App:
                     datetime.now().month,
                     stocks[3]
                 )) / usd_dkk
-            }
+            },
+            stocks[4]: {
+                "shares": 1,
+                "price":6600
+           }
         }
-
         dkigi_value = portfolio["DKIGI.CO"]["shares"] * portfolio["DKIGI.CO"]["price"]*usd_dkk
-        print("The value is",dkigi_value)
         # Calculate portfolio value
         nordnet_value: float = sum(stock["shares"] * stock["price"] for stock in portfolio.values())*usd_dkk-dkigi_value
         db_value = dkigi_value
@@ -451,10 +453,10 @@ class App:
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Could not retrieve the data: {e}")
         if sentiment_data[0]["date"] != current_date:
-            
             sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(
                 self.web_scraper_instance.sentiment_url
             )
+            
             if sentiment_value:
                 self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_value}')
             else:
@@ -489,11 +491,10 @@ class App:
         # Save the figure as a PDF
         filename: str = f"{stock}_{year}_{month}.pdf"
         self.figure.savefig(filename)
-        
+    
 # Initialize Tkinter
 if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
     # app.get_news_links_for_month(2024,10)
     root.mainloop()
-

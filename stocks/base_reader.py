@@ -9,7 +9,6 @@ class MarketReaderBase:
         self.monthly_date = {}
         self.start_date = "2024-01-01"
         self.end_date   =  datetime.now().strftime("%Y-%m-%d")
-
     def get_start_and_end_date(self, year, month):
         key = (year, month)
         if key in self.monthly_date:

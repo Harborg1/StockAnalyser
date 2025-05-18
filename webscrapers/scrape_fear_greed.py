@@ -6,13 +6,13 @@ import os
 def scrape_fear_greed_index(api_url):
     json_path = os.path.join("json_folder", "feargreed.json")
     existing_values = []
-
+    
     # Load existing data if file exists
     if os.path.exists(json_path):
         with open(json_path, "r", encoding="utf-8") as file:
             print("Loaded .json file...")
             existing_values = json.load(file)
-
+            
     print("Fetching Fear & Greed index from API...")
     try:
         response = requests.get(api_url, timeout=10)
@@ -45,4 +45,5 @@ def scrape_fear_greed_index(api_url):
 
 # Run the function
 scrape_fear_greed_index("https://api.alternative.me/fng/")
+
 

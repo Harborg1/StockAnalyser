@@ -2,12 +2,11 @@
 import pandas as pd
 import yfinance as yf
 import matplotlib.pyplot as plt
-from base_reader import MarketReaderBase
+from stocks.base_reader import MarketReaderBase
 import calendar
 class crypto_reader(MarketReaderBase):
     def __init__(self):
         super().__init__()
-
 
     def get_full_weeks(self, year, month):
         _, days = calendar.monthrange(year, month)
@@ -63,15 +62,11 @@ class crypto_reader(MarketReaderBase):
         ax.set_title(
             f'{stock} Performance in {calendar.month_name[month]} {year}\n'
             f'Price Range: ${price_range[0]} - ${price_range[1]}\n'
-            f'20 day moving average:{self.get_moving_average(self.start_date,self.end_date,stock,True)}\n'
-            f'50 day moving average:{self.get_moving_average(self.start_date,self.end_date,stock,False)}',
+            f'20 day moving average: {self.get_moving_average(self.start_date,self.end_date,stock,True)}\n'
+            f'50 day moving average: {self.get_moving_average(self.start_date,self.end_date,stock,False)}',
             fontsize=10
         )
-
         if download:
             return plt
         else:
             plt.show()
-
-
-

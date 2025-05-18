@@ -15,8 +15,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
-      
-
     - name: Install Google Chrome (no Snap)
       run: |
         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
@@ -42,7 +40,6 @@ jobs:
         google-chrome --version
         which chromedriver
         chromedriver --version
-
     - name: Kill stray Chrome processes and clean temp profiles
       run: |
         pkill chrome || true
@@ -63,5 +60,5 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-
     
+  
