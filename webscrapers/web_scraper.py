@@ -491,13 +491,29 @@ class web_scraper:
             By.XPATH,
             "//td[@class='ant-table-cell' and @style='text-align: right;']/div"
         )
+    
+            # Find first non-empty value from the end
+            for i,el in enumerate(value_change):
+                text = el.text.strip()
+                if text:
+                    print("Text is",text, "index is",i)
+               
+
             # Find first non-empty value from the end
             for el in value_change:
                 text = el.text.strip()
                 if text:
                     val_chg = text
-                    break
+                    break     
+            
+
+            for i,el in enumerate(BTC_available):
+                text = el.text.strip()
+                if text:
+                    print("Text is",text, "index is",i)
+                    break  
                
+
             for el in BTC_available:
                 text = el.text.strip()
                 if text:
