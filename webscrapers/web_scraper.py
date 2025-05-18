@@ -449,12 +449,15 @@ class web_scraper:
         json_path = "json_folder\\coinglass_balance_24h_change.json"
         self.driver.get(url)
         try:
-            self.driver.save_screenshot("coinglass_screenshot.png")
-            
+             # ✅ Scroll the main page to load the lower table with the Total row
+            self.driver.execute_script("window.scrollBy(0, 1500);")
+
             # Wait for the scrollable table container to appear
             scroll_container = WebDriverWait(self.driver, 40).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "ant-table-body"))
             )
+
+            self.driver.save_screenshot("coinglass_screenshot.png")
 
             # Scroll progressively inside the scrollable table
             unchanged_attempts = 0
@@ -477,8 +480,7 @@ class web_scraper:
             self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
 
             
-            # ✅ Scroll the main page to load the lower table with the Total row
-            self.driver.execute_script("window.scrollBy(0, 1500);")
+           
 
             # Collect visible elements
             value_change = self.driver.find_elements(
