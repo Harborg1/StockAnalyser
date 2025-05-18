@@ -1,8 +1,10 @@
 name: Webscrape Market Data
 
 on:
-  workflow_dispatch:
-
+  schedule:
+    - cron: '0 */12 * * *'  # Every 12 hours at minute 0 (i.e., at 00:00 and 12:00 UTC)
+  workflow_dispatch:        # Allows manual triggering
+  
 jobs:
   scrape:
     runs-on: ubuntu-latest
