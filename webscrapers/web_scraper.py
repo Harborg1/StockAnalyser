@@ -15,7 +15,6 @@ from datetime import datetime
 import time
 from selenium.webdriver.support import expected_conditions as EC
 import platform
-
 class TextPresentInElement(object):
     def __init__(self, locator):
         self.locator = locator
@@ -48,10 +47,6 @@ class web_scraper:
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0 Safari/537.36")
-
-        print("🧪 Chrome options passed to driver:")
-        for arg in options.arguments:
-            print("   ", arg)
 
         if platform.system() == "Windows":
             path = "chromedriver.exe"
