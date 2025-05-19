@@ -1,3 +1,5 @@
 
 StockMarketData/passcodes.env
 *.env
+__pycache__/
+*.pyc
