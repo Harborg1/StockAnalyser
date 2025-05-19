@@ -154,7 +154,7 @@ class App:
         # Portfolio data
         portfolio: Dict[str, Dict[str, float]] = {
             stocks[0]: {
-                "shares": 50,
+                "shares": 60,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -162,7 +162,7 @@ class App:
                 ))
             },
             stocks[1]: {
-                "shares": 145,
+                "shares": 155,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -171,7 +171,7 @@ class App:
                 
             },
             stocks[2]: {
-                "shares": 300,
+                "shares": 500,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -185,11 +185,7 @@ class App:
                     datetime.now().month,
                     stocks[3]
                 )) / usd_dkk
-            },
-            stocks[4]: {
-                "shares": 1,
-                "price":6600
-           }
+            }
         }
         dkigi_value = portfolio["DKIGI.CO"]["shares"] * portfolio["DKIGI.CO"]["price"]*usd_dkk
         # Calculate portfolio value
