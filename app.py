@@ -15,124 +15,247 @@ from webscrapers.web_scraper import web_scraper
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import customtkinter as ctk
 
 class App:
     """Main application class for the Stock Data Calendar Viewer.
     This class handles the GUI and business logic for viewing and analyzing stock data.
     It provides functionality for viewing stock calendars, portfolio details, and news data.
     """
-    def __init__(self, root: tk.Tk) -> None:
+    def __init__(self, root: ctk.CTk) -> None:
         """Initialize the application.
         Args:
             root: The main Tkinter window instance.
         """
+        # Define color scheme
+        self.colors = {
+            'primary': '#2c3e50',    # Dark blue-gray
+            'secondary': '#3498db',   # Bright blue
+            'accent': '#e74c3c',      # Red
+            'background': '#ecf0f1',  # Light gray
+            'text': '#2c3e50',        # Dark blue-gray
+            'button': '#3498db',      # Bright blue
+            'button_hover': '#2980b9', # Darker blue for hover
+            'button_text': 'white'
+        }
+        
+        # Configure root window
+        self.root = root
+        self.root.title("Market Metrics Explorer")
+        self.root.configure(bg=self.colors['background'])
+        
+        # Configure style
+        self.style = ttk.Style()
+        self.style.configure('TFrame', background=self.colors['background'])
+        self.style.configure('TLabel', 
+                           background=self.colors['background'],
+                           foreground=self.colors['text'],
+                           font=('Helvetica', 10))
+        self.style.configure('TButton',
+                           background=self.colors['button'],
+                           foreground=self.colors['button_text'],
+                           font=('Helvetica', 10, 'bold'),
+                           padding=10)
+        self.style.configure('TCombobox',
+                           background=self.colors['background'],
+                           fieldbackground='white',
+                           font=('Helvetica', 10))
+        
+        # Initialize instances
         self.stock_reader_instance = stock_reader(day_details_callback=self.open_day_details_window)
         self.crypto_reader_instance = crypto_reader()
         self.path = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
-        self.root = root
-        self.root.title("Stock Data Calendar Viewer")
-        # Main frame for the layout
-        self.main_frame = tk.Frame(root, padx=10, pady=10)
-        self.main_frame.grid(row=0, column=0)
+        
+        # Main frame with padding
+        self.main_frame = ctk.CTkFrame(root, corner_radius=15, fg_color=self.colors['background'])
+        self.main_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        
+        # Configure grid weights
+        root.grid_rowconfigure(0, weight=1)
+        root.grid_columnconfigure(0, weight=1)
+        
         self.populate_main_screen()
-    def populate_main_screen(self) -> None:
-        """Populate the main screen with stock selection, date selection, and action buttons.
-        This method creates the main interface components including:
-        - Stock selection dropdown
-        - Year and month selection dropdowns
-        - Action buttons for showing calendar and downloading
-        - Sentiment display
-        """
 
+    def create_styled_button(self, parent, text, command, width=150):
+        """Create a rounded button using CTkButton from customtkinter."""
+        btn = ctk.CTkButton(
+            parent,
+            text=text,
+            command=command,
+            width=width,
+            height=36,
+            corner_radius=12,
+            fg_color=self.colors['button'],
+            hover_color=self.colors['button_hover'],
+            text_color=self.colors['button_text'],
+            font=ctk.CTkFont(family='Helvetica', size=12, weight='bold')
+        )
+        return btn
+
+    def populate_main_screen(self) -> None:
+        """Populate the main screen with styled components."""
         # Clear the main frame
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        # Stock selection
-        stock_frame = tk.Frame(self.main_frame, pady=5)
-        stock_frame.grid(row=0, column=0, sticky="w")
 
-        tk.Label(stock_frame, text="Select stock:").grid(row=0, column=0, padx=5, pady=5)
+        # Title
+        title_label = ctk.CTkLabel(
+            self.main_frame,
+            text="Market Metrics Explorer",
+            font=ctk.CTkFont(family='Helvetica', size=16, weight='bold'),
+            text_color=self.colors['primary'],
+            fg_color=self.colors['background']
+        )
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+
+        # Stock selection frame
+        stock_frame = ttk.Frame(self.main_frame)
+        stock_frame.grid(row=1, column=0, sticky="w", pady=10)
+        
+        ttk.Label(stock_frame, text="Select stock:", font=('Helvetica', 11)).grid(row=0, column=0, padx=5)
         self.stock_entry = ttk.Combobox(
-            stock_frame, 
-            values=["TSLA", "CLSK", "NVDA", "PLTR", "SPY","BTC-USD"], 
-            state="readonly"
+            stock_frame,
+            values=["TSLA", "CLSK", "NVDA", "PLTR", "SPY", "BTC-USD"],
+            state="readonly",
+            width=15,
+            font=('Helvetica', 11)
         )
         self.stock_entry.grid(row=0, column=1, padx=5)
         self.stock_entry.set("CLSK")
+        
         self.web_scraper_instance = web_scraper(self.stock_entry.get())
-        self.navigate_button = tk.Button(
-            stock_frame, 
-            text="→", 
-            font=("Arial", 12), 
-            command=self.re_populate_screen
+        self.navigate_button = self.create_styled_button(
+            stock_frame,
+            "→",
+            self.re_populate_screen,
+            width=3
         )
-        self.navigate_button.grid(row=0, column=5, padx=2, pady=2)
+        self.navigate_button.grid(row=0, column=2, padx=5)
 
-        # Year and Month selection
-        date_frame = tk.Frame(self.main_frame, pady=5)
-        date_frame.grid(row=1, column=0, sticky="w")
-
-        tk.Label(date_frame, text="Select Year:").grid(row=0, column=0, padx=5, pady=5)
+        # Date selection frame
+        date_frame = ttk.Frame(self.main_frame)
+        date_frame.grid(row=2, column=0, sticky="w", pady=10)
+        
+        ttk.Label(date_frame, text="Select Year:", font=('Helvetica', 11)).grid(row=0, column=0, padx=5)
         self.year_entry = ttk.Combobox(
-            date_frame, 
-            values=[2021, 2022, 2023, 2024, 2025], 
-            state="readonly"
+            date_frame,
+            values=[2021, 2022, 2023, 2024, 2025],
+            state="readonly",
+            width=8,
+            font=('Helvetica', 11)
         )
         self.year_entry.grid(row=0, column=1, padx=5)
         self.year_entry.set(datetime.now().year)
 
-        tk.Label(date_frame, text="Select Month:").grid(row=0, column=2, padx=5, pady=5)
+        ttk.Label(date_frame, text="Select Month:", font=('Helvetica', 11)).grid(row=0, column=2, padx=5)
         self.month_entry = ttk.Combobox(
-            date_frame, 
-            values=list(range(1, 13)), 
-            state="readonly"
+            date_frame,
+            values=list(range(1, 13)),
+            state="readonly",
+            width=5,
+            font=('Helvetica', 11)
         )
         self.month_entry.grid(row=0, column=3, padx=5)
         self.month_entry.set(datetime.now().month)
 
-        # Buttons for calendar actions
-        button_frame = tk.Frame(self.main_frame, pady=10, padx=10)
-        button_frame.grid(row=2, column=0, sticky="w")
-        button_frame.grid_columnconfigure(1, minsize=120)
-        self.show_button = tk.Button(
-            button_frame, 
-            text="Show Calendar", 
-            command=self.show_calendar
+        # Action buttons frame
+        button_frame = ttk.Frame(self.main_frame)
+        button_frame.grid(row=3, column=0, sticky="w", pady=15)
+        
+        self.show_button = self.create_styled_button(
+            button_frame,
+            "Show Market Activity",
+            self.show_calendar
         )
-        self.show_button.grid(row=1, column=0, padx=5, pady=5)
+        self.show_button.grid(row=0, column=0, padx=5)
 
-        self.sentiment_text = tk.Text(button_frame, height=1, width=20)
-        self.sentiment_text.grid(row=1, column=2, padx=5, pady=5)
+        # Sentiment display
+        sentiment_frame = ttk.Frame(button_frame)
+        sentiment_frame.grid(row=0, column=1, padx=20)
+        self.sentiment_text = tk.Text(
+            sentiment_frame,
+            height=1,
+            width=25,
+            font=('Helvetica', 11),
+            bg=self.colors['background'],
+            relief='flat'
+        )
+        self.sentiment_text.grid(row=0, column=0)
         self.get_sentiment_data()
 
-        action_frame = tk.Frame(self.main_frame, pady=10)
-        action_frame.grid(row=3, column=0, sticky="w")
-        self.download_button = tk.Button(
-            action_frame, 
-            text="Download", 
-            command=self.download_calendar
-        )
-        self.download_button.grid(row=0, column=0, padx=5, pady=5)
+        # Additional actions frame
+        action_frame = ttk.Frame(self.main_frame)
+        action_frame.grid(row=4, column=0, sticky="w", pady=10)
         
-        self.fetch_news_button = tk.Button(
-            action_frame, 
-            text="Fetch news", 
-            command=lambda: self.fetch_news()
+        self.download_button = self.create_styled_button(
+            action_frame,
+            "Download",
+            self.download_calendar
         )
-        self.fetch_news_button.grid(row=0, column=2, padx=5, pady=5)
-
-        self.crypto_button = tk.Button(
-        action_frame,
-        text="Crypto Metrics",
-        command=self.open_crypto_page
-    )
+        self.download_button.grid(row=0, column=0, padx=5)
         
-        self.crypto_button.grid(row=0, column=3, padx=5, pady=5)
+        self.fetch_news_button = self.create_styled_button(
+            action_frame,
+            "Fetch News",
+            self.fetch_news
+        )
+        self.fetch_news_button.grid(row=0, column=1, padx=5)
+        
+        self.crypto_button = self.create_styled_button(
+            action_frame,
+            "Crypto Metrics",
+            self.open_crypto_page
+        )
+        self.crypto_button.grid(row=0, column=2, padx=5)
 
     def open_crypto_page(self) -> None:
-        """Open a placeholder window for Crypto Metrics."""
+        """Show 20-day and 50-day moving averages for Bitcoin in the main frame with a back button."""
+        # Clear the main frame
         for widget in self.main_frame.winfo_children():
-                widget.destroy()
+            widget.destroy()
+
+        # Back button (top left)
+        back_button = self.create_styled_button(
+            self.main_frame,
+            "←",
+            self.populate_main_screen,
+            width=40
+        )
+        back_button.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+
+        # Title
+        title_label = ctk.CTkLabel(
+            self.main_frame,
+            text="Bitcoin Moving Averages",
+            font=ctk.CTkFont(family='Helvetica', size=16, weight='bold'),
+            text_color=self.colors['primary'],
+            fg_color=self.colors['background']
+        )
+        title_label.grid(row=1, column=0, columnspan=2, pady=(20, 10))
+
+        # Get current year/month for latest data
+        stock = "BTC-USD"
+        ma20 = self.crypto_reader_instance.get_moving_average(self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=True)
+        ma50 = self.crypto_reader_instance.get_moving_average(self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=False)
+
+        # Show the results
+        ma20_label = ctk.CTkLabel(
+            self.main_frame,
+            text=f"20-day MA: {ma20}",
+            font=ctk.CTkFont(family='Helvetica', size=14),
+            text_color=self.colors['secondary'],
+            fg_color=self.colors['background']
+        )
+        ma20_label.grid(row=2, column=0, columnspan=2, pady=10)
+
+        ma50_label = ctk.CTkLabel(
+            self.main_frame,
+            text=f"50-day MA: {ma50}",
+            font=ctk.CTkFont(family='Helvetica', size=14),
+            text_color=self.colors['secondary'],
+            fg_color=self.colors['background']
+        )
+        ma50_label.grid(row=3, column=0, columnspan=2, pady=10)
 
     def re_populate_screen(self) -> None:
         """Replace the main screen with portfolio details view.
@@ -145,9 +268,28 @@ class App:
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
-        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO","CASH"]
+        # Title
+        title_label = ctk.CTkLabel(
+            self.main_frame,
+            text="Portfolio Overview",
+            font=ctk.CTkFont(family='Helvetica', size=16, weight='bold'),
+            text_color=self.colors['primary'],
+            fg_color=self.colors['background']
+        )
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+
+        # Back button (now styled)
+        back_button = self.create_styled_button(
+            self.main_frame,
+            "←",
+            self.populate_main_screen,
+            width=40
+        )
+        back_button.grid(row=1, column=0, sticky="w", padx=5, pady=5)
+
+        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO", "CASH"]
         usd_dkk: float = float(self.stock_reader_instance.get_last_trading_day_close(
-            datetime.now().year, 
+            datetime.now().year,
             datetime.now().month,
             "DKK=X"
         ))
@@ -193,14 +335,6 @@ class App:
         db_value = dkigi_value
         total_value = nordnet_value+db_value
 
-        # Back button (Top-left corner)
-        tk.Button(
-            self.main_frame,
-            text="←",
-            font=("Arial", 12),
-            command=self.populate_main_screen
-        ).grid(row=0, column=0, sticky="w", padx=10, pady=10)
-    
         # Display portfolio value
         tk.Label(
             self.main_frame,
@@ -220,7 +354,6 @@ class App:
             font=("Arial", 16),
             fg="green"
         ).grid(row=5, column=0)
-
 
         # Prepare data for the pie chart
         labels: List[str] = list(portfolio.keys())
@@ -305,26 +438,55 @@ class App:
         3. Displays price data, moving averages, and sentiment
         4. Shows news links if available
         """
-        # Register Edge browser if available
         if os.path.exists(self.path):
             webbrowser.register("edge", None, webbrowser.BackgroundBrowser(self.path))
         else:
             print("Microsoft Edge not found at default paths.")
 
-        # Get stock data
-        btc_mined:float = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data_2024)
+        btc_mined: float = self.web_scraper_instance.calculate_total_btc(self.web_scraper_instance.bitcoin_data_2024)
         day_window = tk.Toplevel(self.root)
         day_window.title(f"Stock Details for {stock} - {year}-{month:02d}-{day:02d}")
-        # Fetch various data points
+        day_window.configure(bg=self.colors['background'])
+        
+        # Add padding to the window
+        main_frame = ttk.Frame(day_window, padding="20 20 20 20")
+        main_frame.grid(row=0, column=0, sticky="nsew")
+        
+        # Title
+        title_label = tk.Label(
+            main_frame,
+            text=f"Stock Details for {stock}",
+            font=('Helvetica', 16, 'bold'),
+            bg=self.colors['background'],
+            fg=self.colors['primary'],
+            pady=10
+        )
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+
         today = datetime.now()
         is_today = (today.year == year and today.month == month and today.day == day)
         pre_market_price = get_pre_market_price_ticker(stock)
-        if is_today and pre_market_price is not None:
-        # ➔ TODAY: Show pre-market data
-            tk.Label(day_window, text=f"Today (Pre-Market) - {stock}", font=("Arial", 14)).pack(pady=5)
-            tk.Label(day_window, text=f"Pre-Market Price: ${pre_market_price:.2f}", font=("Arial", 12)).pack(pady=5)
-
+        
         data = self.stock_reader_instance.get_data_for_day(year, month, day, stock)
+        if is_today and pre_market_price is not None:
+            if data is None:
+                pre_market_frame = ttk.Frame(main_frame)
+                pre_market_frame.grid(row=1, column=0, columnspan=2, pady=10)
+                tk.Label(
+                    pre_market_frame,
+                    text="Today (Pre-Market)",
+                    font=('Helvetica', 12, 'bold'),
+                    bg=self.colors['background'],
+                    fg=self.colors['accent']
+                ).pack(pady=5)
+                tk.Label(
+                    pre_market_frame,
+                    text=f"Pre-Market Price: ${pre_market_price:.2f}",
+                    font=('Helvetica', 11),
+                    bg=self.colors['background'],
+                    fg=self.colors['text']
+                ).pack(pady=5)
+
         start_date = f"{year}-{month}-{day}"
         sentiment_data = self.stock_reader_instance.get_sentiment(stock, start_date, start_date)
         ma20 = self.stock_reader_instance.get_moving_average(
@@ -333,89 +495,113 @@ class App:
             stock,
             ma20=True
         )
-        #print((datetime.strptime(self.stock_reader_instance.end_date, "%Y-%m-%d") - timedelta(days=200)).strftime("%Y-%m-%d"))
         ma50 = self.stock_reader_instance.get_moving_average(
             self.stock_reader_instance.start_date,
             self.stock_reader_instance.end_date,
             stock,
             ma20=False
         )
-        # Get news links if available
         links: List[str] = self.get_news_links_for_month(year, month) if stock == "CLSK" else []
 
         if isinstance(data, pd.Series):
-            # Extract and convert data to standard Python types
+            # Create a frame for price data
+            price_frame = ttk.Frame(main_frame)
+            price_frame.grid(row=2, column=0, columnspan=2, pady=10)
+            
+            # Extract and convert data
             open_price: float = float(data['Open'].iloc[0])
             high_price: float = float(data['High'].iloc[0])
             low_price: float = float(data['Low'].iloc[0])
             close_price: float = float(data['Close'].iloc[0])
             volume: int = int(data['Volume'].iloc[0])
-            # Display the data with proper formatting
-            tk.Label(day_window, text=f"Date: {year}-{month:02d}-{day:02d}", font=("Arial", 14)).pack(pady=5)
-            tk.Label(day_window, text=f"Stock: {stock}", font=("Arial", 14)).pack(pady=5)
-            tk.Label(day_window, text=f"Open Price: ${open_price:,.2f}", font=("Arial", 12)).pack(pady=2)
-            tk.Label(day_window, text=f"High Price: ${high_price:,.2f}", font=("Arial", 12)).pack(pady=2)
-            tk.Label(day_window, text=f"Low Price: ${low_price:,.2f}", font=("Arial", 12)).pack(pady=2)
-            tk.Label(day_window, text=f"Close Price: ${close_price:,.2f}", font=("Arial", 12)).pack(pady=2)
-            tk.Label(day_window, text=f"Volume: {volume:,}", font=("Arial", 12)).pack(pady=2)
-            tk.Label(day_window, text=f"20-day ma: {ma20:,}", font=("Arial", 12)).pack(pady=2)
-            tk.Label(day_window, text=f"50-day ma: {ma50:,}", font=("Arial", 12)).pack(pady=2)
+            
+            # Display price data with styling
+            price_data = [
+                ("Open Price", f"${open_price:,.2f}"),
+                ("High Price", f"${high_price:,.2f}"),
+                ("Low Price", f"${low_price:,.2f}"),
+                ("Close Price", f"${close_price:,.2f}"),
+                ("Volume", f"{volume:,}"),
+                ("20-day MA", f"{ma20:,.2f}"),
+                ("50-day MA", f"{ma50:,.2f}")
+            ]
+            
+            for i, (label, value) in enumerate(price_data):
+                tk.Label(
+                    price_frame,
+                    text=label,
+                    font=('Helvetica', 11),
+                    bg=self.colors['background'],
+                    fg=self.colors['text']
+                ).grid(row=i, column=0, sticky="w", padx=5, pady=2)
+                
+                tk.Label(
+                    price_frame,
+                    text=value,
+                    font=('Helvetica', 11, 'bold'),
+                    bg=self.colors['background'],
+                    fg=self.colors['primary']
+                ).grid(row=i, column=1, sticky="w", padx=5, pady=2)
 
             # Display BTC mined for CLSK
             if stock == "CLSK":
-                tk.Label(day_window, text=f"BTC mined: {btc_mined:,}", font=("Arial", 12)).pack(pady=2)
-                link = tk.Label(
-                    day_window,
-                    text="Click here to see the total network hashrate",
-                    font=("Arial", 10),
-                    fg="blue",
-                    cursor="hand2"
-                )
-                link.pack(pady=1)
-                link.bind(
-                    "<Button-1>",
-                    lambda e, url="https://minerstat.com/coin/BTC/network-hashrate": webbrowser.get("edge").open(url)
-                )
+                btc_frame = ttk.Frame(main_frame)
+                btc_frame.grid(row=3, column=0, columnspan=2, pady=10)
                 
-                link = tk.Label(
-                    day_window,
-                    text="Click here to see the bitcoin mining address",
-                    font=("Arial", 10),
-                    fg="blue",
-                    cursor="hand2"
-                )
-                link.pack(pady=1)
-                link.bind(
-                    "<Button-1>",
-                    lambda e, url="https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab": webbrowser.get("edge").open(url)
-                )
+                tk.Label(
+                    btc_frame,
+                    text=f"BTC mined: {btc_mined:,}",
+                    font=('Helvetica', 11),
+                    bg=self.colors['background'],
+                    fg=self.colors['text']
+                ).pack(pady=5)
+                
+                # Create styled links
+                def create_link(parent, text, url):
+                    link = tk.Label(
+                        parent,
+                        text=text,
+                        font=('Helvetica', 10),
+                        fg=self.colors['secondary'],
+                        bg=self.colors['background'],
+                        cursor="hand2"
+                    )
+                    link.pack(pady=2)
+                    link.bind("<Button-1>", lambda e: webbrowser.get("edge").open(url))
+                    return link
+                
+                create_link(btc_frame, "View Network Hashrate", "https://minerstat.com/coin/BTC/network-hashrate")
+                create_link(btc_frame, "View Bitcoin Mining Address", "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab")
+
             # Handle sentiment data
             if sentiment_data is not None:
                 sentiment, urls = sentiment_data
-                tk.Label(day_window, text=f"Sentiment Score: {sentiment:.2f}", font=("Arial", 12)).pack(pady=2)
+                sentiment_frame = ttk.Frame(main_frame)
+                sentiment_frame.grid(row=4, column=0, columnspan=2, pady=10)
+                
+                tk.Label(
+                    sentiment_frame,
+                    text=f"Sentiment Score: {sentiment:.2f}",
+                    font=('Helvetica', 11),
+                    bg=self.colors['background'],
+                    fg=self.colors['text']
+                ).pack(pady=5)
                 
                 if urls:
-                    tk.Label(day_window, text="Articles:", font=("Arial", 12)).pack(pady=2)
+                    tk.Label(
+                        sentiment_frame,
+                        text="Related Articles:",
+                        font=('Helvetica', 11, 'bold'),
+                        bg=self.colors['background'],
+                        fg=self.colors['primary']
+                    ).pack(pady=5)
+                    
                     for url in urls:
-                        link = tk.Label(
-                            day_window,
-                            text=url,
-                            font=("Arial", 10),
-                            fg="blue",
-                            cursor="hand2"
-                        )
-                        link.pack(pady=1)
-                        link.bind("<Button-1>", lambda e, url=url: webbrowser.get("edge").open(url))
+                        create_link(sentiment_frame, url, url)
+                
                 for lnk in links:
-                    link = tk.Label(
-                        day_window,
-                        text=lnk,
-                        font=("Arial", 10),
-                        fg="blue",
-                        cursor="hand2"
-                    )
-                    link.pack(pady=1)
-                    link.bind("<Button-1>", lambda e, url=lnk: webbrowser.get("edge").open(url))
+                    create_link(sentiment_frame, lnk, lnk)
+
     def fetch_news(self) -> None:
         """Fetch news articles and earnings data for the selected stock.
         This method:

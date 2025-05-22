@@ -231,6 +231,7 @@ class web_scraper:
         """
         Scrapes data from the bitcoin address of CLSK that is more recent than the cutoff date."""
         # Calculate target_count as the number of days from today to May 1st
+        self.setup_driver()
         today = datetime.now()
         cutoff_date = datetime(2025, 5, 1)
         days_difference = (today - cutoff_date).days+1
@@ -533,8 +534,8 @@ if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     # scraper.scrape_earnings()
-    # scraper.scrape_bitcoin_address()
-    # scraper.scrape_coinglass_change()
+    #scraper.scrape_bitcoin_address()
+    #scraper.scrape_coinglass_change()
     scraper.scrape_useful_data()
     # print(f"Fear & Greed Index: {fear_greed_value}")
     #scraper.scrape_bitcoin_address_all_time()

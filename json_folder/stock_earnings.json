@@ -1,9 +1,5 @@
 [
     {
-        "date": "May 8, 2025",
-        "stock": "CLSK"
-    },
-    {
         "date": "Apr 22, 2025",
         "stock": "TSLA"
     },
@@ -14,5 +10,9 @@
     {
         "date": "May 5, 2025",
         "stock": "PLTR"
+    },
+    {
+        "date": "",
+        "stock": "CLSK"
     }
 ]
