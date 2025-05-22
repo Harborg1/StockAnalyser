@@ -115,5 +115,14 @@ class MarketReaderBase:
 
         return percentage_change
     
+    def get_last_trading_day_close(self, year:int, month:int, stock:str) -> pd.DataFrame | tuple[str, int, int]:
+        start_date, end_date = self.get_start_and_end_date(year, month)
+        # Download the data within the date range
+        data = self.download_data(start_date, end_date, stock)
+        # if stock == "0P0001BC2I.CO":
+        #     print(data["Close"])
+        return data['Close'].iloc[-1].item()
+    
+ 
 
    

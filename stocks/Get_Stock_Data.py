@@ -46,16 +46,6 @@ class stock_reader(MarketReaderBase):
         else:
             # Return the error message or handle it (e.g., log or raise an error)
             return data  # This will return the error message directly
-        
-    
-    def get_last_trading_day_close(self, year:int, month:int, stock:str) -> pd.DataFrame | tuple[str, int, int]:
-        start_date, end_date = self.get_start_and_end_date(year, month)
-        # Download the data within the date range
-        data = self.download_data(start_date, end_date, stock)
-        # if stock == "0P0001BC2I.CO":
-        #     print(data["Close"])
-        return data['Close'].iloc[-1].item()
-    
     def get_price_or_percentage_change(self, year: int, month: int, stock: str, return_percentage: bool = False) -> list[float]:
         start_date, end_date = self.get_start_and_end_date(year, month)
         l_close = self.get_close_price(start_date, end_date, stock)

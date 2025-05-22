@@ -209,7 +209,7 @@ class App:
         self.crypto_button.grid(row=0, column=2, padx=5)
 
     def open_crypto_page(self) -> None:
-        """Show 20-day and 50-day moving averages for Bitcoin in the main frame with a back button."""
+        """Show current Bitcoin price and 20-day/50-day moving averages in the main frame with a back button."""
         # Clear the main frame
         for widget in self.main_frame.winfo_children():
             widget.destroy()
@@ -226,17 +226,33 @@ class App:
         # Title
         title_label = ctk.CTkLabel(
             self.main_frame,
-            text="Bitcoin Moving Averages",
+            text="Bitcoin Metrics",
             font=ctk.CTkFont(family='Helvetica', size=16, weight='bold'),
             text_color=self.colors['primary'],
             fg_color=self.colors['background']
         )
         title_label.grid(row=1, column=0, columnspan=2, pady=(20, 10))
 
-        # Get current year/month for latest data
+        # Get current price and moving averages
         stock = "BTC-USD"
+        # Get current price (last close)
+        current_price = self.crypto_reader_instance.get_last_trading_day_close(
+            datetime.now().year,
+            datetime.now().month,
+            stock
+        )
         ma20 = self.crypto_reader_instance.get_moving_average(self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=True)
         ma50 = self.crypto_reader_instance.get_moving_average(self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=False)
+
+        # Show the current price
+        price_label = ctk.CTkLabel(
+            self.main_frame,
+            text=f"BTC Price: ${current_price}",
+            font=ctk.CTkFont(family='Helvetica', size=14),
+            text_color=self.colors['secondary'],
+            fg_color=self.colors['background']
+        )
+        price_label.grid(row=2, column=0, columnspan=2, pady=10)
 
         # Show the results
         ma20_label = ctk.CTkLabel(
@@ -246,7 +262,7 @@ class App:
             text_color=self.colors['secondary'],
             fg_color=self.colors['background']
         )
-        ma20_label.grid(row=2, column=0, columnspan=2, pady=10)
+        ma20_label.grid(row=3, column=0, columnspan=2, pady=10)
 
         ma50_label = ctk.CTkLabel(
             self.main_frame,
@@ -255,7 +271,7 @@ class App:
             text_color=self.colors['secondary'],
             fg_color=self.colors['background']
         )
-        ma50_label.grid(row=3, column=0, columnspan=2, pady=10)
+        ma50_label.grid(row=4, column=0, columnspan=2, pady=10)
 
     def re_populate_screen(self) -> None:
         """Replace the main screen with portfolio details view.
