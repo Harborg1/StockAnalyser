@@ -378,6 +378,8 @@ class web_scraper:
     
     def calculate_total_btc(self,json_data):
         bitcoin_holding = 12090 #Estimated bitcoin holding since 01-05-2025
+        off_set=900 #A transaction of 900 BTC that occured on 15-05-2025 (not mined)
+        bitcoin_holding-=off_set 
         bitcoin_data = []
         if os.path.exists(json_data):
             with open(json_data, "r", encoding="utf-8") as file:
@@ -394,7 +396,6 @@ class web_scraper:
                 print(f"Skipping invalid value: {item['btc_mined']}")
         return total_sum
     
-
     def calculate_btc_mined_per_month(self, json_file_path):
         if os.path.exists(json_file_path):
             with open(json_file_path, "r", encoding="utf-8") as file:
