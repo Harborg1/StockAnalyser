@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import customtkinter as ctk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.ticker import EngFormatter
 
 class App:
     """Main application class for the Stock Data Calendar Viewer.
@@ -73,8 +76,16 @@ class App:
         # Configure grid weights
         root.grid_rowconfigure(0, weight=1)
         root.grid_columnconfigure(0, weight=1)
-        
         self.populate_main_screen()
+
+    
+    def cleanup_canvas(self):
+        if hasattr(self, 'canvas'):
+            try:
+                self.canvas.get_tk_widget().destroy()
+                plt.close('all')  # Optional but helpful
+            except Exception:
+                pass
 
     def create_styled_button(self, parent, text, command, width=150):
         """Create a rounded button using CTkButton from customtkinter."""
@@ -209,20 +220,18 @@ class App:
         self.crypto_button.grid(row=0, column=2, padx=5)
 
     def open_crypto_page(self) -> None:
-        """Show current Bitcoin price and 20-day/50-day moving averages in the main frame with a back button."""
-        # Clear the main frame
+
+        """Displays different bitcoin data including price, moving average and BTC available on global exchanges """
+        # Clear frame
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
-        # Back button (top left)
+        # Back button
         back_button = self.create_styled_button(
-            self.main_frame,
-            "←",
-            self.populate_main_screen,
-            width=40
+            self.main_frame, "←", self.populate_main_screen, width=40
         )
         back_button.grid(row=0, column=0, sticky="w", padx=5, pady=5)
-
+    
         # Title
         title_label = ctk.CTkLabel(
             self.main_frame,
@@ -233,45 +242,83 @@ class App:
         )
         title_label.grid(row=1, column=0, columnspan=2, pady=(20, 10))
 
-        # Get current price and moving averages
+        # Get metrics
         stock = "BTC-USD"
-        # Get current price (last close)
         current_price = self.crypto_reader_instance.get_last_trading_day_close(
-            datetime.now().year,
-            datetime.now().month,
-            stock
+            datetime.now().year, datetime.now().month, stock
         )
-        ma20 = self.crypto_reader_instance.get_moving_average(self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=True)
-        ma50 = self.crypto_reader_instance.get_moving_average(self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=False)
+        ma20 = self.crypto_reader_instance.get_moving_average(
+            self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=True
+        )
+        ma50 = self.crypto_reader_instance.get_moving_average(
+            self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=False
+        )
 
-        # Show the current price
-        price_label = ctk.CTkLabel(
-            self.main_frame,
-            text=f"BTC Price: ${current_price}",
-            font=ctk.CTkFont(family='Helvetica', size=14),
-            text_color=self.colors['secondary'],
-            fg_color=self.colors['background']
-        )
-        price_label.grid(row=2, column=0, columnspan=2, pady=10)
+        # Labels
+        ctk.CTkLabel(self.main_frame, text=f"BTC Price: ${current_price}", font=ctk.CTkFont(size=14),
+                    text_color=self.colors['secondary'], fg_color=self.colors['background']
+        ).grid(row=2, column=0, columnspan=2, pady=5)
 
-        # Show the results
-        ma20_label = ctk.CTkLabel(
-            self.main_frame,
-            text=f"20-day MA: {ma20}",
-            font=ctk.CTkFont(family='Helvetica', size=14),
-            text_color=self.colors['secondary'],
-            fg_color=self.colors['background']
-        )
-        ma20_label.grid(row=3, column=0, columnspan=2, pady=10)
+        ctk.CTkLabel(self.main_frame, text=f"20-day MA: {ma20}", font=ctk.CTkFont(size=14),
+                    text_color=self.colors['secondary'], fg_color=self.colors['background']
+        ).grid(row=3, column=0, columnspan=2, pady=5)
 
-        ma50_label = ctk.CTkLabel(
-            self.main_frame,
-            text=f"50-day MA: {ma50}",
-            font=ctk.CTkFont(family='Helvetica', size=14),
-            text_color=self.colors['secondary'],
-            fg_color=self.colors['background']
-        )
-        ma50_label.grid(row=4, column=0, columnspan=2, pady=10)
+        ctk.CTkLabel(self.main_frame, text=f"50-day MA: {ma50}", font=ctk.CTkFont(size=14),
+                    text_color=self.colors['secondary'], fg_color=self.colors['background']
+        ).grid(row=4, column=0, columnspan=2, pady=5)
+
+    
+        json_path = os.path.join("json_folder", "coinglass_balance_24h_change.json")
+        with open(json_path, "r") as f:
+            data = json.load(f)
+        
+        data.sort(key=lambda x: x["timestamp"])  # Ensure ascending order
+
+        # Process data
+        full_timestamps = [datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") for entry in data]
+        dates = [ts.date() for ts in full_timestamps]
+        total_bitcoin = [float(entry["Total bitcoin"].replace(",", "")) for entry in data]
+
+        fig, ax = plt.subplots(figsize=(6,5), dpi=100)
+
+        # Add 24h change bars for each day (except the first)
+        ax2 = ax.twinx()
+        for i in range(1, len(dates)):
+            change = total_bitcoin[i] - total_bitcoin[i - 1]
+            color = 'green' if change >= 0 else 'red'
+            ax2.bar(dates[i], change, color=color, width=0.05, alpha=0.3)
+
+        ax2.set_ylabel("24h Change (BTC)", color='black')
+        ax2.tick_params(axis='y', labelcolor='black')
+
+        # Plot total BTC
+        ax.plot(dates, total_bitcoin, marker='o', linewidth=2, color='tab:blue', label="Total BTC")
+
+        # Format for y-axis and annotations
+        btc_formatter = EngFormatter(unit="", places=3)
+        ax.yaxis.set_major_formatter(btc_formatter)
+
+        # Annotate data points
+        for x, y in zip(dates, total_bitcoin):
+            ax.annotate(btc_formatter.format_data(y), (x, y), textcoords="offset points", xytext=(0, 10),
+                        ha='center', fontsize=9)
+
+        # Styling
+        ax.margins(x=0.1)
+        ax.set_title("Total BTC and 24h Change")
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Total BTC", color='black')
+        ax.tick_params(axis='y', labelcolor='black')
+        ax.set_xticks(dates)
+        ax.set_xticklabels(dates, fontsize=9)
+        ax.set_ylim(min(total_bitcoin) * 0.999, max(total_bitcoin) * 1.001)
+        ax.grid(True, linestyle='--', alpha=0.5)
+ 
+        # Render in UI
+        fig.tight_layout()
+        self.canvas = FigureCanvasTkAgg(fig, master=self.main_frame)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=2, pady=20)
 
     def re_populate_screen(self) -> None:
         """Replace the main screen with portfolio details view.
@@ -694,5 +741,19 @@ class App:
 if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
-    # app.get_news_links_for_month(2024,10)
+    def on_closing():
+        try:
+            if hasattr(app, 'canvas'):
+                app.canvas.get_tk_widget().destroy()
+                app.canvas.get_tk_widget().after_cancel(app.canvas._idle_callback_id) if hasattr(app.canvas, '_idle_callback_id') else None
+            plt.close('all')
+        except Exception as e:
+            print(f"Cleanup error: {e}")
+        finally:
+            try:
+                root.quit()     # Stop the mainloop
+                root.destroy()  # Destroy the window
+            except Exception as e:
+                print(f"Final shutdown error: {e}")
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()

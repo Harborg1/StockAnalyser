@@ -9,7 +9,7 @@ def get_news_sentiment(stock, start_date, end_date):
     url = f"https://newsapi.org/v2/everything?q={stock}&from={start_date}&to={end_date}&sortBy=popularity&apiKey={API}"
     with httpx.Client(http2=True) as client:
         response = client.get(url)
-
+        
     # Check if the request was successful
     if response.status_code != 200:
         print(f"Error: {response.status_code}, {response.json()}")

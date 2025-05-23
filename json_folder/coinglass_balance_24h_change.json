@@ -1,49 +1,10 @@
 [
     {
-        "timestamp": "2025-05-18 16:00:02",
-        "24h_change_total": "-859.07",
-        "Total bitcoin": "2,165,049.30"
-    },
-    {
-        "timestamp": "2025-05-19 01:42:01",
-        "24h_change_total": "-19536.14",
-        "Total bitcoin": "2,166,979.00"
-    },
-    {
-        "timestamp": "2025-05-19 12:40:52",
-        "24h_change_total": "+1183.26",
-        "Total bitcoin": "2,166,698.57"
-    },
-    {
-        "timestamp": "2025-05-20 01:40:12",
-        "24h_change_total": "-5146.98",
-        "Total bitcoin": "2,161,966.46"
-    },
-    {
-        "timestamp": "2025-05-20 12:40:40",
-        "24h_change_total": "-7171.27",
-        "Total bitcoin": "2,159,942.16"
-    },
-    {
-        "timestamp": "2025-05-21 01:38:25",
-        "24h_change_total": "-3977.72",
-        "Total bitcoin": "2,157,851.53"
-    },
-    {
-        "timestamp": "2025-05-22 01:38:34",
-        "24h_change_total": "-4820.08",
-        "Total bitcoin": "2,153,021.41"
-    },
-    {
         "timestamp": "2025-05-22 12:41:54",
         "24h_change_total": "+740.73",
         "Total bitcoin": "2,158,482.97"
     },
-    {
-        "timestamp": "2025-05-23 01:37:37",
-        "24h_change_total": "+3847.20",
-        "Total bitcoin": "2,157,357.40"
-    },
+
     {
         "timestamp": "2025-05-23 12:39:36",
         "24h_change_total": "+5446.78",

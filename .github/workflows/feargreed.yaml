@@ -2,8 +2,8 @@ name: Run Fear & Greed Scraper
 
 on:
   schedule:
-    - cron: '0 */12 * * *'  # Every 12 hours at minute 0 (i.e., at 00:00 and 12:00 UTC)
-  workflow_dispatch:        # Allows manual triggering
+    - cron: '40 10 * * *'  # Every day at 12:40 PM CPH time (10:40 UTC)
+  workflow_dispatch:        # Allows manual triggeringg
   
 jobs:
   run-scraper:
