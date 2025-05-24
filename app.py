@@ -484,6 +484,21 @@ class App:
             print(f"Unexpected error while getting news links: {e}")
             return []
         
+
+    # Create styled links
+    def create_link(self,parent, text, url):
+            link = tk.Label(
+                parent,
+                text=text,
+                font=('Helvetica', 10),
+                fg=self.colors['secondary'],
+                bg=self.colors['background'],
+                cursor="hand2"
+            )
+            link.pack(pady=2)
+            link.bind("<Button-1>", lambda e: webbrowser.get("edge").open(url))
+            return link
+        
     def open_day_details_window(self, year: int, month: int, day: int, stock: str) -> None:
         """Open a window showing detailed stock data for a specific day.
         Args:
@@ -615,22 +630,10 @@ class App:
                     fg=self.colors['text']
                 ).pack(pady=5)
                 
-                # Create styled links
-                def create_link(parent, text, url):
-                    link = tk.Label(
-                        parent,
-                        text=text,
-                        font=('Helvetica', 10),
-                        fg=self.colors['secondary'],
-                        bg=self.colors['background'],
-                        cursor="hand2"
-                    )
-                    link.pack(pady=2)
-                    link.bind("<Button-1>", lambda e: webbrowser.get("edge").open(url))
-                    return link
                 
-                create_link(btc_frame, "View Network Hashrate", "https://minerstat.com/coin/BTC/network-hashrate")
-                create_link(btc_frame, "View Bitcoin Mining Address", "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab")
+               
+                self.create_link(btc_frame, "View Network Hashrate", "https://minerstat.com/coin/BTC/network-hashrate")
+                self.create_link(btc_frame, "View Bitcoin Mining Address", "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab")
 
             # Handle sentiment data
             if sentiment_data is not None:
@@ -654,12 +657,12 @@ class App:
                         bg=self.colors['background'],
                         fg=self.colors['primary']
                     ).pack(pady=5)
-                    
+
                     for url in urls:
-                        create_link(sentiment_frame, url, url)
-                
+                        self.create_link(sentiment_frame, url, url)
+
                 for lnk in links:
-                    create_link(sentiment_frame, lnk, lnk)
+                    self.create_link(sentiment_frame, lnk, lnk)
 
     def fetch_news(self) -> None:
         """Fetch news articles and earnings data for the selected stock.
