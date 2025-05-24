@@ -279,46 +279,42 @@ class App:
         dates = [ts.date() for ts in full_timestamps]
         total_bitcoin = [float(entry["Total bitcoin"].replace(",", "")) for entry in data]
 
-        fig, ax = plt.subplots(figsize=(6,5), dpi=100)
+        fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
 
-        # Add 24h change bars for each day (except the first)
-        ax2 = ax.twinx()
-        for i in range(1, len(dates)):
-            change = total_bitcoin[i] - total_bitcoin[i - 1]
-            color = 'green' if change >= 0 else 'red'
-            ax2.bar(dates[i], change, color=color, width=0.05, alpha=0.3)
+        btc_changes = [0] + [total_bitcoin[i] - total_bitcoin[i - 1] for i in range(1, len(total_bitcoin))]
+        bar_colors = ['green' if change >= 0 else 'red' for change in btc_changes]
+        bars = ax.bar(dates, total_bitcoin, color=bar_colors, alpha=0.8, width=0.4)
 
-        ax2.set_ylabel("24h Change (BTC)", color='black')
-        ax2.tick_params(axis='y', labelcolor='black')
-
-        # Plot total BTC
-        ax.plot(dates, total_bitcoin, marker='o', linewidth=2, color='tab:blue', label="Total BTC")
-
-        # Format for y-axis and annotations
         btc_formatter = EngFormatter(unit="", places=3)
         ax.yaxis.set_major_formatter(btc_formatter)
 
-        # Annotate data points
-        for x, y in zip(dates, total_bitcoin):
-            ax.annotate(btc_formatter.format_data(y), (x, y), textcoords="offset points", xytext=(0, 10),
-                        ha='center', fontsize=9)
+        for i, (bar, change) in enumerate(zip(bars, btc_changes)):
+            if i==0:
+                continue
+            sign = "+" if change >= 0 else ""
+            ax.annotate(f"{sign}{change:,.0f}", xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                        xytext=(0, 5), textcoords="offset points", ha='center', fontsize=8)
 
-        # Styling
-        ax.margins(x=0.1)
-        ax.set_title("Total BTC and 24h Change")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Total BTC", color='black')
-        ax.tick_params(axis='y', labelcolor='black')
+        ax.set_title("Total BTC Held on Exchanges", fontsize=12)
+        ax.set_ylabel("Total BTC")
+        ax.tick_params(axis='x', labelsize=8, rotation=45)
         ax.set_xticks(dates)
-        ax.set_xticklabels(dates, fontsize=9)
-        ax.set_ylim(min(total_bitcoin) * 0.999, max(total_bitcoin) * 1.001)
+        ax.set_xticklabels([d.strftime('%b %d') for d in dates])
         ax.grid(True, linestyle='--', alpha=0.5)
- 
-        # Render in UI
+        min_btc = min(total_bitcoin)*0.999
+        max_btc = max(total_bitcoin)*1.011
+        padding = (max_btc - min_btc) * 0.01  # 1% padding
+
+        ax.set_ylim(min_btc - padding, max_btc + padding)
+        fig.subplots_adjust(left=0.2)
         fig.tight_layout()
+
+        # Render in UI
         self.canvas = FigureCanvasTkAgg(fig, master=self.main_frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=2, pady=20)
+
+
 
     def re_populate_screen(self) -> None:
         """Replace the main screen with portfolio details view.
