@@ -12,6 +12,7 @@ import os
 import json
 from datetime import datetime
 from webscrapers.web_scraper import web_scraper
+from webscrapers.scrape_fear_greed import scrape_fear_greed_index
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -697,10 +698,7 @@ class App:
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Could not retrieve the data: {e}")
         if sentiment_data[0]["date"] != current_date:
-            sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(
-                self.web_scraper_instance.sentiment_url
-            )
-            
+            sentiment_value = scrape_fear_greed_index("https://api.alternative.me/fng/")
             if sentiment_value:
                 self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_value}')
             else:
