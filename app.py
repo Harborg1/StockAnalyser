@@ -127,7 +127,7 @@ class App:
         ttk.Label(stock_frame, text="Select stock:", font=('Helvetica', 11)).grid(row=0, column=0, padx=5)
         self.stock_entry = ttk.Combobox(
             stock_frame,
-            values=["TSLA", "CLSK", "NVDA", "PLTR", "SPY", "BTC-USD"],
+            values=["TSLA", "CLSK", "NVDA", "PLTR", "SPY", "BTC-USD","^VIX"],
             state="readonly",
             width=15,
             font=('Helvetica', 11)
@@ -649,7 +649,7 @@ class App:
                     bg=self.colors['background'],
                     fg=self.colors['text']
                 ).pack(pady=5)
-                
+
                 if urls:
                     tk.Label(
                         sentiment_frame,
