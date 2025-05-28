@@ -222,27 +222,27 @@ class stock_reader(MarketReaderBase):
                     day_rect.set_facecolor("purple")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
                     ax.text(day_idx + 0.5, -week_idx - 0.5, str(earnings_dates[current_date] + " " + "earnings date"),
-                            ha='center', va='center', fontsize=5, weight='bold', color='black')
+                            ha='center', va='center', fontsize=7, weight='bold', color='black')
 
                 elif current_date in stock_market_holidays_list:
                     # Place a grey square for the holiday
                     day_rect.set_facecolor("grey")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
                     ax.text(day_idx + 0.5, -week_idx - 0.5, str(stock_market_holidays_list[current_date]),
-                            ha='center', va='center', fontsize=5, weight='bold', color='black')
+                            ha='center', va='center', fontsize=7, weight='bold', color='black')
                     
                 elif current_date in cpi_data:
                      # Place a blue square for CPI data
                     day_rect.set_facecolor("blue")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
                     ax.text(day_idx + 0.5, -week_idx - 0.5, "CPI data date",
-                            ha='center', va='center', fontsize=5, weight='bold', color='black')
+                            ha='center', va='center', fontsize=7, weight='bold', color='black')
                 elif current_date in fomc_data:
                     # Place a yellow square for FOMC data
                     day_rect.set_facecolor("yellow")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
                     ax.text(day_idx + 0.5, -week_idx - 0.5, "FOMC meeting today or tomorrow",
-                            ha='center', va='center', fontsize=5, weight='bold', color='black')
+                            ha='center', va='center', fontsize=7, weight='bold', color='black')
                     
         if month==current_month:
             # Add grid lines
