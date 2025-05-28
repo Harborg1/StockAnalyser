@@ -11,7 +11,6 @@ import os
 import json
 from datetime import datetime
 from webscrapers.web_scraper import web_scraper
-from webscrapers.scrape_fear_greed import scrape_fear_greed_index
 from auxillary.pre_market import get_pre_market_price_ticker
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
@@ -631,7 +630,6 @@ class App:
                     fg=self.colors['text']
                 ).pack(pady=5)
                 
-                
                
                 self.create_link(btc_frame, "View Network Hashrate", "https://minerstat.com/coin/BTC/network-hashrate")
                 self.create_link(btc_frame, "View Bitcoin Mining Address", "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab")
@@ -693,12 +691,12 @@ class App:
             # Check if the data is in the .json file
             with open('json_folder\\feargreed.json', 'r', encoding='utf-8') as f:
                 sentiment_data = json.load(f)
-                if sentiment_data[0]["date"] == current_date:
-                    self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data[0]["fear_greed_index"]}')
+                if sentiment_data[-1]["date"] == current_date:
+                    self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data[-1]["fear_greed_index"]}')
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Could not retrieve the data: {e}")
-        if sentiment_data[0]["date"] != current_date:
-            sentiment_value = scrape_fear_greed_index("https://api.alternative.me/fng/")
+        if sentiment_data[-1]["date"] != current_date:
+            sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(self.web_scraper_instance.sentiment_url)
             if sentiment_value:
                 self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_value}')
             else:

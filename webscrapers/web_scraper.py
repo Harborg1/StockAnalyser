@@ -227,6 +227,54 @@ class web_scraper:
         return new_links
     
 
+    def scrape_fear_greed_index(self, url):
+        if self.driver is None:
+            self.setup_driver()
+        self.driver.get(url)
+
+        json_file_path = os.path.join("json_folder", "feargreed.json")
+
+        try:
+            time.sleep(3)
+            locator = (By.CLASS_NAME, "market-fng-gauge__dial-number-value")
+            WebDriverWait(self.driver, 15).until(EC.presence_of_element_located(locator))
+            elements = self.driver.find_elements(By.CLASS_NAME, "market-fng-gauge__dial-number-value")
+
+            for el in elements:
+                value = el.text.strip()
+                if value:
+                    new_entry = {
+                        "date": datetime.now().strftime("%Y-%m-%d"),
+                        "fear_greed_index": value
+                    }
+
+                    # Load existing data if file exists, otherwise start a list
+                    if os.path.exists(json_file_path):
+                        with open(json_file_path, "r") as f:
+                            try:
+                                data = json.load(f)
+                                if not isinstance(data, list):
+                                    data = [data]
+                            except json.JSONDecodeError:
+                                data = []
+                    else:
+                        data = []
+                    data.append(new_entry)
+
+                    # Save updated data
+                    with open(json_file_path, "w") as f:
+                        json.dump(data, f, indent=4)
+
+                    self.driver.quit()
+                    return value
+
+            return None
+        except Exception as e:
+            print(f"Error scraping Fear & Greed index: {e}")
+            return None
+
+    
+
     def scrape_bitcoin_address(self):
         """
         Scrapes data from the bitcoin address of CLSK that is more recent than the cutoff date."""

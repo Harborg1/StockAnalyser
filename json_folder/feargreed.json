@@ -1,9 +1,5 @@
 [
     {
-        "date": "2025-05-28",
-        "fear_greed_index": "71"
-    },
-    {
         "date": "2025-05-27",
         "fear_greed_index": "74"
     },
@@ -122,5 +118,9 @@
     {
         "date": "2025-04-10",
         "fear_greed_index": "16"
+    },
+    {
+        "date": "2025-05-28",
+        "fear_greed_index": "65"
     }
 ]
