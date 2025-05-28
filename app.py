@@ -7,12 +7,12 @@ from tkinter import ttk
 import tkinter as tk
 import pandas as pd
 import webbrowser
-from pre_market import get_pre_market_price_ticker
 import os
 import json
 from datetime import datetime
 from webscrapers.web_scraper import web_scraper
 from webscrapers.scrape_fear_greed import scrape_fear_greed_index
+from auxillary.pre_market import get_pre_market_price_ticker
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg

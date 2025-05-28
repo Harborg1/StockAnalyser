@@ -1,12 +1,12 @@
 from datetime import datetime
 from stocks.constants import stock_market_holidays
-from pre_market import get_pre_market_price_ticker
+from auxillary.pre_market import get_pre_market_price_ticker
 from stocks.Get_Crypto_Data  import crypto_reader
 from stocks.base_reader import MarketReaderBase
 import pandas as pd
 import yfinance as yf
 import matplotlib.pyplot as plt
-import sentiment as Sentiment
+import auxillary.sentiment as Sentiment
 import json
 import calendar
 class stock_reader(MarketReaderBase):
