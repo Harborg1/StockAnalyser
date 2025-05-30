@@ -16,7 +16,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements1.txt
 
       - name: Run stock trading signal script
         run: python trading.py
