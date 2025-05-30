@@ -6,47 +6,49 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
-from dotenv import load_dotenv
-load_dotenv("passcodes.env")
 
-password= os.getenv("EMAIL_PASSWORD")
+# In GitHub Actions, this comes from the environment
+password = os.environ.get("EMAIL_PASSWORD")
+
+sender_email = "christian1234t4556565@gmail.com"
+receiver_email = "caharborg@gmail.com"
 
 # Fetch data
-gld = yf.download('TSLA')
-gld.columns = gld.columns.get_level_values(0)
+stock = yf.download('TSLA')
+stock.columns = stock.columns.get_level_values(0)
 
 # Add day index
-gld['day'] = np.arange(1, len(gld) + 1)
-gld = gld[['day', 'Open', 'High', 'Low', 'Close']]
+stock['day'] = np.arange(1, len(stock) + 1)
+stock = stock[['day', 'Open', 'High', 'Low', 'Close']]
 
 # Moving averages with shift to avoid lookahead bias
-gld['9-day'] = gld['Close'].rolling(9).mean().shift()
-gld['21-day'] = gld['Close'].rolling(21).mean().shift()
+stock['9-day'] = stock['Close'].rolling(9).mean().shift()
+stock['21-day'] = stock['Close'].rolling(21).mean().shift()
 
 # Generate trading signals
-gld['signal'] = np.where(gld['9-day'] > gld['21-day'], 1, 0)
-gld['signal'] = np.where(gld['9-day'] < gld['21-day'], -1, gld['signal'])
+stock['signal'] = np.where(stock['9-day'] > stock['21-day'], 1, 0)
+stock['signal'] = np.where(stock['9-day'] < stock['21-day'], -1, stock['signal'])
 
 # Drop NaNs
-gld.dropna(inplace=True)
+stock.dropna(inplace=True)
 
 # Calculate log returns and strategy performance
-gld['return'] = np.log(gld['Close']).diff()
-gld['system_return'] = gld['signal'] * gld['return']
-gld['entry'] = gld['signal'].diff()
+stock['return'] = np.log(stock['Close']).diff()
+stock['system_return'] = stock['signal'] * stock['return']
+stock['entry'] = stock['signal'].diff()
 
 # Filter data for 2025
-gld_2025 = gld[gld.index >= '2025-01-01']
+stock_2025 = stock[stock.index >= '2025-01-01']
 
 # Plot 2025 signals and prices
 plt.figure(figsize=(12, 6))
 plt.grid(True, alpha=.3)
-plt.plot(gld_2025['Close'], label='CLSK')
-plt.plot(gld_2025['9-day'], label='9-day')
-plt.plot(gld_2025['21-day'], label='21-day')
-plt.plot(gld_2025.loc[gld_2025.entry == 2].index, gld_2025['9-day'][gld_2025.entry == 2], '^',
+plt.plot(stock_2025['Close'], label='CLSK')
+plt.plot(stock_2025['9-day'], label='9-day')
+plt.plot(stock_2025['21-day'], label='21-day')
+plt.plot(stock_2025.loc[stock_2025.entry == 2].index, stock_2025['9-day'][stock_2025.entry == 2], '^',
          color='g', markersize=12, label='Buy')
-plt.plot(gld_2025.loc[gld_2025.entry == -2].index, gld_2025['21-day'][gld_2025.entry == -2], 'v',
+plt.plot(stock_2025.loc[stock_2025.entry == -2].index, stock_2025['21-day'][stock_2025.entry == -2], 'v',
          color='r', markersize=12, label='Sell')
 plt.legend(loc=2)
 plt.title("CLSK Price and Trading Signals - 2025")
@@ -54,35 +56,41 @@ plt.show()
 
 # Plot cumulative returns for 2025
 plt.figure(figsize=(12, 6))
-plt.plot(np.exp(gld_2025['return'].cumsum()), label='Buy/Hold')
-plt.plot(np.exp(gld_2025['system_return'].cumsum()), label='System')
+plt.plot(np.exp(stock_2025['return'].cumsum()), label='Buy/Hold')
+plt.plot(np.exp(stock_2025['system_return'].cumsum()), label='System')
 plt.legend(loc=2)
 plt.grid(True, alpha=.3)
 plt.title("Cumulative Returns in 2025")
 plt.show()
 
 # Print final returns for 2025
-buy_hold_return = np.exp(gld_2025['return'].sum()) - 1
-system_return = np.exp(gld_2025['system_return'].sum()) - 1
+buy_hold_return = np.exp(stock_2025['return'].sum()) - 1
+system_return = np.exp(stock_2025['system_return'].sum()) - 1
 print("2025 Buy & Hold return:", buy_hold_return)
 print("2025 System return:", system_return)
 
 # Check signal at the latest date
-if gld['9-day'].iloc[-1] > gld['21-day'].iloc[-1]:
-    sender_email = "christian1234t4556565@gmail.com"  # 🔒 Replace with your email
-    receiver_email = "caharborg@gmail.com"
-    code = password  # 🔒 Replace with app-specific password (not your actual Gmail password)
+if stock['9-day'].iloc[-1] > stock['21-day'].iloc[-1]:
+    code = password 
 
-    subject = "Trading Signal Alert: 9-day MA > 21-day MA"
-    body = f"""\
-    Hello,
-    A bullish signal has been detected:
-    - 9-day MA: {gld['9-day'].iloc[-1]:.2f}
-    - 21-day MA: {gld['21-day'].iloc[-1]:.2f}
+    subject = "📈 Trading Signal Alert for TSLA: Bullish Crossover Detected"
 
-    Consider reviewing TSLA.
+    latest_close = round(stock['Close'].iloc[-1], 2)
+    ma_9 = round(stock['9-day'].iloc[-1], 2)
+    ma_21 = round(stock['21-day'].iloc[-1], 2)
 
-    Regards,
+    body = f"""Hi,
+
+    A *bullish crossover* has just been detected for TSLA.
+
+    🔔 The 9-day moving average ({ma_9}) is now higher than the 21-day moving average ({ma_21}).
+
+    🔹 Latest closing price: {latest_close} USD  
+    🔹 Signal: Potential buy indication
+
+    This could be an opportunity worth watching, depending on your trading strategy.
+
+    Best regards,  
     Your Python Script
     """
 

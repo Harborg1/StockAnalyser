@@ -122,5 +122,13 @@
     {
         "date": "2025-05-28",
         "fear_greed_index": "65"
+    },
+    {
+        "date": "2025-05-29",
+        "fear_greed_index": "64"
+    },
+    {
+        "date": "2025-05-30",
+        "fear_greed_index": "64"
     }
 ]
