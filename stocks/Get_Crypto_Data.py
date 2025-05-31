@@ -64,7 +64,7 @@ class crypto_reader(MarketReaderBase):
             f'Price Range: ${price_range[0]} - ${price_range[1]}\n'
             f'20 day moving average: {self.get_moving_average(self.start_date,self.end_date,stock,True)}\n'
             f'50 day moving average: {self.get_moving_average(self.start_date,self.end_date,stock,False)}',
-            fontsize=10
+            fontsize=11
         )
         if download:
             return plt

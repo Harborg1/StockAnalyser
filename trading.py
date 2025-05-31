@@ -7,7 +7,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 
-# In GitHub Actions, this comes from the environment
 password = os.environ.get("EMAIL_PASSWORD")
 
 sender_email = "christian1234t4556565@gmail.com"

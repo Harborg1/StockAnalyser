@@ -93,6 +93,8 @@ class stock_reader(MarketReaderBase):
     
     def create_month_calendar_view(self, year:int, month:int, stock:str, download:bool=False):
 
+        plt.close('all')
+
         # Load the earnings dates from the JSON file
         current_date = datetime.now()
         current_month = current_date.month

@@ -77,12 +77,15 @@ class MarketReaderBase:
         start_date, end_date = self.get_start_and_end_date(year, month)
         data = self.download_data(start_date,end_date,stock)
         l = []
+        if stock=="BTC-USD":
+            for i in range(len(data)):
+              l.append((int(data['Open'].iloc[i].item()),int(data['Close'].iloc[i].item())))
+
         for i in range(len(data)):
             l.append((round(data['Open'].iloc[i].item(),2),round(data['Close'].iloc[i].item(),2)))
 
         return l
     
-
     def get_price_change_per_month(self,year:int,month:int,stock:str) -> tuple[float, float]:
         start_date, end_date = self.get_start_and_end_date(year,month)
         data = self.download_data(start_date,end_date,stock)
@@ -93,7 +96,8 @@ class MarketReaderBase:
 
         for i in range(len(data)):
             max_val = max(max_val, data['Open'].iloc[i].item(),data['Close'].iloc[i].item())
-
+        if stock=="BTC-USD":
+            return int(min_val),int(max_val)
         return round(min_val,2),round(max_val,2)
 
 
