@@ -244,7 +244,7 @@ class stock_reader(MarketReaderBase):
                     day_rect.set_facecolor("yellow")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
                     ax.text(day_idx + 0.5, -week_idx - 0.5, "FOMC meeting today or tomorrow",
-                            ha='center', va='center', fontsize=7, weight='bold', color='black')
+                            ha='center', va='center', fontsize=6, weight='bold', color='black')
                     
         if month==current_month:
             # Add grid lines
