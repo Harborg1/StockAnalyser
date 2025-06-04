@@ -19,6 +19,6 @@ jobs:
         run: pip install -r requirements1.txt
 
       - name: Run stock trading signal script
-        run: python auxillary\trading.py
+        run: python auxillary/trading.py
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}

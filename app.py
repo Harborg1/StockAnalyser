@@ -14,7 +14,6 @@ from webscrapers.web_scraper import web_scraper
 from auxillary.pre_market import get_pre_market_price_ticker
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import customtkinter as ctk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
