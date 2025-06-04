@@ -22,3 +22,5 @@ jobs:
         run: python auxillary/trading.py
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_RECIEVER: ${{ secrets.EMAIL_RECIEVER }}
