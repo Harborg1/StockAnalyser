@@ -8,9 +8,8 @@ from email.mime.multipart import MIMEMultipart
 import os
 
 password = os.environ.get("EMAIL_PASSWORD")
-
-sender_email = "christian1234t4556565@gmail.com"
-receiver_email = "caharborg@gmail.com"
+sender_email = os.environ.get("EMAIL_SENDER")
+receiver_email =  os.environ.get("EMAIL_RECIEVER")
 
 # Fetch data
 stock = yf.download('TSLA')
