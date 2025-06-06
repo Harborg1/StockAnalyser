@@ -15,10 +15,15 @@ receiver_email = os.environ.get("EMAIL_RECIEVER")
 # Keep track of signals sent today
 SIGNAL_LOG_FILE = os.path.join("json_folder","signals_sent.json")
 
-# Load previous signals (if any)
 if os.path.exists(SIGNAL_LOG_FILE):
-    with open(SIGNAL_LOG_FILE, "r") as f:
-        signals_sent_today = json.load(f)
+    try:
+        with open(SIGNAL_LOG_FILE, "r") as f:
+            signals_sent_today = json.load(f)
+    except json.JSONDecodeError:
+        # File exists but is empty or corrupted → reset it
+        signals_sent_today = {}
+    else:
+        signals_sent_today = {}
 else:
     signals_sent_today = {}
 
