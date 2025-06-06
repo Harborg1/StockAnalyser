@@ -15,6 +15,7 @@ receiver_email =  os.environ.get("EMAIL_RECIEVER")
 stock = yf.download('TSLA')
 stock.columns = stock.columns.get_level_values(0)
 
+
 # Add day index
 stock['day'] = np.arange(1, len(stock) + 1)
 stock = stock[['day', 'Open', 'High', 'Low', 'Close']]
@@ -67,44 +68,87 @@ system_return = np.exp(stock_2025['system_return'].sum()) - 1
 print("2025 Buy & Hold return:", buy_hold_return)
 print("2025 System return:", system_return)
 
-# Check signal at the latest date
-if stock['9-day'].iloc[-1] > stock['21-day'].iloc[-1]:
-    code = password 
+def send_trading_signal(ticker):
 
-    subject = "📈 Trading Signal Alert for TSLA: Bullish Crossover Detected"
+    stock = yf.download(ticker)
+    # Moving averages with shift to avoid lookahead bias
+    stock['9-day'] = stock['Close'].rolling(9).mean().shift()
+    stock['21-day'] = stock['Close'].rolling(21).mean().shift()
 
-    latest_close = round(stock['Close'].iloc[-1], 2)
-    ma_9 = round(stock['9-day'].iloc[-1], 2)
-    ma_21 = round(stock['21-day'].iloc[-1], 2)
+    # Check signal at the latest date
+    if stock['9-day'].iloc[-1] > stock['21-day'].iloc[-1]:
+        code = password 
 
-    body = f"""Hi,
+        subject = "📈 Trading Signal Alert for TSLA: Bullish Crossover Detected"
 
-    A *bullish crossover* has just been detected for TSLA.
+        latest_close = round(stock['Close'].iloc[-1], 2)
+        ma_9 = round(stock['9-day'].iloc[-1], 2)
+        ma_21 = round(stock['21-day'].iloc[-1], 2)
 
-    🔔 The 9-day moving average ({ma_9}) is now higher than the 21-day moving average ({ma_21}).
+        body = f"""Hi,
 
-    🔹 Latest closing price: {latest_close} USD  
-    🔹 Signal: Potential buy indication
+        A *bullish crossover* has just been detected for TSLA.
 
-    This could be an opportunity worth watching, depending on your trading strategy.
+        🔔 The 9-day moving average ({ma_9}) is now higher than the 21-day moving average ({ma_21}).
 
-    Best regards,  
-    Your Python Script
-    """
+        🔹 Latest closing price: {latest_close} USD  
+        🔹 Signal: Potential buy indication
 
-    # Create the email
-    msg = MIMEMultipart()
-    msg["From"] = sender_email
-    msg["To"] = receiver_email
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+        """
 
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(sender_email, code)
-            server.sendmail(sender_email, receiver_email, msg.as_string())
-        print("✅ Email sent successfully.")
-    except Exception as e:
-        print(f"❌ Failed to send email: {e}")
-else:
-    print("ℹ️ No bullish crossover detected. No email sent.")
+        # Create the email
+        msg = MIMEMultipart()
+        msg["From"] = sender_email
+        msg["To"] = receiver_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(sender_email, code)
+                server.sendmail(sender_email, receiver_email, msg.as_string())
+            print("✅ Email sent successfully.")
+        except Exception as e:
+            print(f"❌ Failed to send email: {e}")
+    
+    elif  stock['9-day'].iloc[-1] < stock['21-day'].iloc[-1]:
+        code = password 
+
+        subject = "📈 Trading Signal Alert for Stock: Bearish Crossover Detected"
+
+        latest_close = round(stock['Close'].iloc[-1], 2)
+        ma_9 = round(stock['9-day'].iloc[-1], 2)
+        ma_21 = round(stock['21-day'].iloc[-1], 2)
+
+        body = f"""Hi,
+
+        A *bullish crossover* has just been detected for TSLA.
+
+        🔔 The 9-day moving average ({ma_9}) is now lower than the 21-day moving average ({ma_21}).
+
+        🔹 Latest closing price: {latest_close} USD  
+        🔹 Signal: Potential sell indication
+        """
+
+        # Create the email
+        msg = MIMEMultipart()
+        msg["From"] = sender_email
+        msg["To"] = receiver_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(sender_email, code)
+                server.sendmail(sender_email, receiver_email, msg.as_string())
+            print("✅ Email sent successfully.")
+        except Exception as e:
+            print(f"❌ Failed to send email: {e}")
+
+    else:
+        print("No signal detected. No email sent.")
+
+        
+    
+
+        
