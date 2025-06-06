@@ -34,7 +34,7 @@ jobs:
         sudo chmod +x /usr/bin/chromedriver
 
     - name: Install Python dependencies
-      run: pip install -r requirements.txt
+      run: pip install -r packages/requirements.txt
 
     - name: Print Chrome + Driver Info
       run: |
