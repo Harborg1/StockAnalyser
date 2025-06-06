@@ -393,7 +393,7 @@ class App:
 
              stocks[4]: {
                 "shares": 1,
-                "price": 37772.0/usd_dkk
+                "price": 37372.0/usd_dkk
             },
                 stocks[5]: {
                 "shares": 80,
@@ -419,7 +419,7 @@ class App:
         tk.Label(self.main_frame, text=f"NordNet Value: {nordnet_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=3, column=0)
         tk.Label(self.main_frame, text=f"db_value: {db_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=4, column=0)
         tk.Label(self.main_frame, text=f"total value: {total_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=5, column=0)
-        
+
         # Prepare data for the pie chart
         labels: List[str] = list(portfolio.keys())
         sizes: List[float] = [stock["shares"] * stock["price"] for stock in portfolio.values()]

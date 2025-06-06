@@ -80,9 +80,9 @@ class MarketReaderBase:
         if stock=="BTC-USD":
             for i in range(len(data)):
               l.append((int(data['Open'].iloc[i].item()),int(data['Close'].iloc[i].item())))
-
-        for i in range(len(data)):
-            l.append((round(data['Open'].iloc[i].item(),2),round(data['Close'].iloc[i].item(),2)))
+        else:
+            for i in range(len(data)):
+                l.append((round(data['Open'].iloc[i].item(),2),round(data['Close'].iloc[i].item(),2)))
 
         return l
     
