@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import matplotlib.pyplot as plt
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -11,92 +10,40 @@ password = os.environ.get("EMAIL_PASSWORD")
 sender_email = os.environ.get("EMAIL_SENDER")
 receiver_email =  os.environ.get("EMAIL_RECIEVER")
 
-# Fetch data
-stock = yf.download('TSLA')
-stock.columns = stock.columns.get_level_values(0)
-
-
-# Add day index
-stock['day'] = np.arange(1, len(stock) + 1)
-stock = stock[['day', 'Open', 'High', 'Low', 'Close']]
-
-# Moving averages with shift to avoid lookahead bias
-stock['9-day'] = stock['Close'].rolling(9).mean().shift()
-stock['21-day'] = stock['Close'].rolling(21).mean().shift()
-
-# Generate trading signals
-stock['signal'] = np.where(stock['9-day'] > stock['21-day'], 1, 0)
-stock['signal'] = np.where(stock['9-day'] < stock['21-day'], -1, stock['signal'])
-
-# Drop NaNs
-stock.dropna(inplace=True)
-
-# Calculate log returns and strategy performance
-stock['return'] = np.log(stock['Close']).diff()
-stock['system_return'] = stock['signal'] * stock['return']
-stock['entry'] = stock['signal'].diff()
-
-# Filter data for 2025
-stock_2025 = stock[stock.index >= '2025-01-01']
-
-# Plot 2025 signals and prices
-plt.figure(figsize=(12, 6))
-plt.grid(True, alpha=.3)
-plt.plot(stock_2025['Close'], label='CLSK')
-plt.plot(stock_2025['9-day'], label='9-day')
-plt.plot(stock_2025['21-day'], label='21-day')
-plt.plot(stock_2025.loc[stock_2025.entry == 2].index, stock_2025['9-day'][stock_2025.entry == 2], '^',
-         color='g', markersize=12, label='Buy')
-plt.plot(stock_2025.loc[stock_2025.entry == -2].index, stock_2025['21-day'][stock_2025.entry == -2], 'v',
-         color='r', markersize=12, label='Sell')
-plt.legend(loc=2)
-plt.title("CLSK Price and Trading Signals - 2025")
-plt.show()
-
-# Plot cumulative returns for 2025
-plt.figure(figsize=(12, 6))
-plt.plot(np.exp(stock_2025['return'].cumsum()), label='Buy/Hold')
-plt.plot(np.exp(stock_2025['system_return'].cumsum()), label='System')
-plt.legend(loc=2)
-plt.grid(True, alpha=.3)
-plt.title("Cumulative Returns in 2025")
-plt.show()
-
-# Print final returns for 2025
-buy_hold_return = np.exp(stock_2025['return'].sum()) - 1
-system_return = np.exp(stock_2025['system_return'].sum()) - 1
-print("2025 Buy & Hold return:", buy_hold_return)
-print("2025 System return:", system_return)
-
 def send_trading_signal(ticker):
-
     stock = yf.download(ticker)
-    # Moving averages with shift to avoid lookahead bias
-    stock['9-day'] = stock['Close'].rolling(9).mean().shift()
-    stock['21-day'] = stock['Close'].rolling(21).mean().shift()
+    stock['day_return_pct'] = stock['Close'].pct_change() * 100
+    stock['cum_return_3d'] = stock['day_return_pct'].rolling(window=3).sum()
+    stock.dropna(inplace=True)
 
-    # Check signal at the latest date
-    if stock['9-day'].iloc[-1] > stock['21-day'].iloc[-1]:
-        code = password 
+    latest_day_return = stock['day_return_pct'].iloc[-1]
+    latest_cum_return_3d = stock['cum_return_3d'].iloc[-1]
+    latest_close = round(stock['Close'].iloc[-1], 2)
 
-        subject = "📈 Trading Signal Alert for TSLA: Bullish Crossover Detected"
+    # Priority logic
+    signal = None
 
-        latest_close = round(stock['Close'].iloc[-1], 2)
-        ma_9 = round(stock['9-day'].iloc[-1], 2)
-        ma_21 = round(stock['21-day'].iloc[-1], 2)
+    if latest_day_return >= 10:
+        signal = f"{ticker}: Up {latest_day_return:.2f}% today — consider SELLING 30%"
+    elif latest_cum_return_3d >= 10:
+        signal = f"{ticker}: Up {latest_cum_return_3d:.2f}% in last 3 days — consider SELLING 30%"
+    elif latest_day_return <= -10:
+        signal = f"{ticker}: Down {latest_day_return:.2f}% today — consider BUYING 30%"
+    elif latest_cum_return_3d <= -10:
+        signal = f"{ticker}: Down {latest_cum_return_3d:.2f}% in last 3 days — consider BUYING 30%"
 
+    # Send email if signal exists
+    if signal:
+        subject = f"📈 Trading Signal Alert for {ticker}"
         body = f"""Hi,
 
-        A *bullish crossover* has just been detected for TSLA.
+A trading signal has been detected for {ticker}.
 
-        🔔 The 9-day moving average ({ma_9}) is now higher than the 21-day moving average ({ma_21}).
+{signal}
 
-        🔹 Latest closing price: {latest_close} USD  
-        🔹 Signal: Potential buy indication
+🔹 Latest closing price: {latest_close} USD
 
-        """
-
-        # Create the email
+"""
         msg = MIMEMultipart()
         msg["From"] = sender_email
         msg["To"] = receiver_email
@@ -105,48 +52,16 @@ def send_trading_signal(ticker):
 
         try:
             with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(sender_email, code)
+                server.login(sender_email, password)
                 server.sendmail(sender_email, receiver_email, msg.as_string())
-            print("✅ Email sent successfully.")
+            print(f"✅ Email sent for {ticker}: {signal}")
         except Exception as e:
-            print(f"❌ Failed to send email: {e}")
-    
-    elif  stock['9-day'].iloc[-1] < stock['21-day'].iloc[-1]:
-        code = password 
-
-        subject = "📈 Trading Signal Alert for Stock: Bearish Crossover Detected"
-
-        latest_close = round(stock['Close'].iloc[-1], 2)
-        ma_9 = round(stock['9-day'].iloc[-1], 2)
-        ma_21 = round(stock['21-day'].iloc[-1], 2)
-
-        body = f"""Hi,
-
-        A *bullish crossover* has just been detected for TSLA.
-
-        🔔 The 9-day moving average ({ma_9}) is now lower than the 21-day moving average ({ma_21}).
-
-        🔹 Latest closing price: {latest_close} USD  
-        🔹 Signal: Potential sell indication
-        """
-
-        # Create the email
-        msg = MIMEMultipart()
-        msg["From"] = sender_email
-        msg["To"] = receiver_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain"))
-
-        try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(sender_email, code)
-                server.sendmail(sender_email, receiver_email, msg.as_string())
-            print("✅ Email sent successfully.")
-        except Exception as e:
-            print(f"❌ Failed to send email: {e}")
-
+            print(f"❌ Failed to send email for {ticker}: {e}")
     else:
-        print("No signal detected. No email sent.")
+        print(f"No signal detected for {ticker}. No email sent.")
 
+# Example portfolio
+portfolio = ["NOVO-B.CO", "TSLA", "CLSK", "NVDA"]
 
-send_trading_signal("TSLA")
+for stock in portfolio:
+    send_trading_signal(stock)
