@@ -24,3 +24,11 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
           EMAIL_RECIEVER: ${{ secrets.EMAIL_RECIEVER }}
+      
+      - name: Commit and push updated signals_sent_today.json
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add json_folder/signals_sent_today.json
+          git commit -m "Update signals_sent_today.json [bot]" || echo "No changes to commit"
+          git push
