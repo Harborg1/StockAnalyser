@@ -349,7 +349,7 @@ class App:
         )
         back_button.grid(row=1, column=0, sticky="w", padx=5, pady=5)
 
-        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO", "CASH"]
+        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO", "CASH","NOVO-B.CO"]
         usd_dkk: float = float(self.stock_reader_instance.get_last_trading_day_close(
             datetime.now().year,
             datetime.now().month,
@@ -358,7 +358,7 @@ class App:
         # Portfolio data
         portfolio: Dict[str, Dict[str, float]] = {
             stocks[0]: {
-                "shares": 60,
+                "shares": 20,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -389,8 +389,26 @@ class App:
                     datetime.now().month,
                     stocks[3]
                 )) / usd_dkk
+            },
+
+             stocks[4]: {
+                "shares": 1,
+                "price": 37772.0/usd_dkk
+            },
+                stocks[5]: {
+                "shares": 80,
+                "price": float(self.stock_reader_instance.get_last_trading_day_close(
+                    datetime.now().year,
+                    datetime.now().month,
+                    stocks[5]
+                )) / usd_dkk
             }
         }
+        print(float(self.stock_reader_instance.get_last_trading_day_close(
+                    datetime.now().year,
+                    datetime.now().month,
+                    stocks[5])))
+        
         dkigi_value = portfolio["DKIGI.CO"]["shares"] * portfolio["DKIGI.CO"]["price"]*usd_dkk
         # Calculate portfolio value
         nordnet_value: float = sum(stock["shares"] * stock["price"] for stock in portfolio.values())*usd_dkk-dkigi_value
@@ -398,30 +416,26 @@ class App:
         total_value = nordnet_value+db_value
 
         # Display portfolio value
-        tk.Label(
-            self.main_frame,
-            text=f"NordNet Value: {nordnet_value:,.2f}DKK",
-            font=("Arial", 16),
-            fg="green"
-        ).grid(row=3, column=0)
-        tk.Label(
-            self.main_frame,
-            text=f"db_value: {db_value:,.2f}DKK",
-            font=("Arial", 16),
-            fg="green"
-        ).grid(row=4, column=0)
-        tk.Label(
-            self.main_frame,
-            text=f"total value: {total_value:,.2f}DKK",
-            font=("Arial", 16),
-            fg="green"
-        ).grid(row=5, column=0)
-
+        tk.Label(self.main_frame, text=f"NordNet Value: {nordnet_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=3, column=0)
+        tk.Label(self.main_frame, text=f"db_value: {db_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=4, column=0)
+        tk.Label(self.main_frame, text=f"total value: {total_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=5, column=0)
+        
         # Prepare data for the pie chart
         labels: List[str] = list(portfolio.keys())
         sizes: List[float] = [stock["shares"] * stock["price"] for stock in portfolio.values()]
-        colors: List[str] = ["#FF5733", "#33FF57", "#3357FF", "#FF33A8", "Brown"]
-
+        # Define a larger color palette
+        colors = [
+            '#FF5733', # red-orange
+            '#33FF57', # green
+            '#3357FF', # blue
+            '#FF33A1', # pink
+            '#FFD433', # yellow
+            '#8E44AD', # purple
+            '#1ABC9C', # teal
+            '#E67E22', # orange
+            '#2ECC71', # emerald green
+            '#3498DB'  # sky blue
+        ]
         # Create the pie chart
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.pie(
