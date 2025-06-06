@@ -21,8 +21,7 @@ if os.path.exists(SIGNAL_LOG_FILE):
             signals_sent_today = json.load(f)
     except json.JSONDecodeError:
         # File exists but is empty or corrupted → reset it
-        signals_sent_today = {}
-    else:
+        print(f"⚠️ Warning: Could not load {SIGNAL_LOG_FILE} — file was empty or corrupted. Resetting.")
         signals_sent_today = {}
 else:
     signals_sent_today = {}
