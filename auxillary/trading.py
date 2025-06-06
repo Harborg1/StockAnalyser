@@ -148,7 +148,5 @@ def send_trading_signal(ticker):
     else:
         print("No signal detected. No email sent.")
 
-        
-    
 
-        
+send_trading_signal("TSLA")
