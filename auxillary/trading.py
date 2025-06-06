@@ -62,10 +62,12 @@ def send_trading_signal(ticker):
     # Check if signal was already sent
     if signal_text:
         ticker_signals = signals_sent_today["signals"].get(ticker, [])
+        print("Ticker signals is:",ticker_signals)
+        print("Signal text is",signal_text)
         if signal_text in ticker_signals:
             print(f"⏭️ Signal '{signal_text}' for {ticker} already sent today. Skipping.")
             return
-
+        
         # Else: send email
         subject = f"📈 Trading Signal Alert for {ticker}"
         body = f"""Hi,
