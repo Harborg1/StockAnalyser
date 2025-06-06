@@ -276,6 +276,8 @@ class App:
         full_timestamps = [datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") for entry in data]
         dates = [ts.date() for ts in full_timestamps]
         total_bitcoin = [float(entry["Total bitcoin"].replace(",", "")) for entry in data]
+        # The 24h change total for the first value of the last 10 days.
+        change =  [float(entry["24h_change_total"].replace(",", "")) for entry in data][-10:][0]
 
         # Get the data for the last 10 days
         data_10d =total_bitcoin[-10:]
@@ -283,8 +285,9 @@ class App:
         dates_10d = dates[-10:]
 
         fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
-
-        btc_changes = [0] + [data_10d[i] - data_10d[i - 1] for i in range(1, len(data_10d))]
+    
+    
+        btc_changes =  [change if i == 0 else data_10d[i] - data_10d[i - 1] for i in range(len(data_10d))]
         bar_colors = ['green' if change >= 0 else 'red' for change in btc_changes]
         bars = ax.bar(dates_10d, data_10d, color=bar_colors, alpha=0.8, width=0.4)
 
@@ -292,11 +295,9 @@ class App:
         ax.yaxis.set_major_formatter(btc_formatter)
 
         for i, (bar, change) in enumerate(zip(bars, btc_changes)):
-            if i==0:
-                continue
             sign = "+" if change >= 0 else ""
             ax.annotate(f"{sign}{change:,.0f}", xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
-                        xytext=(0, 5), textcoords="offset points", ha='center', fontsize=7)
+                        xytext=(0, 5), textcoords="offset points", ha='center', fontsize=6.3)
 
         ax.set_title("Total BTC Held on Exchanges", fontsize=12)
         ax.set_ylabel("Total BTC")
