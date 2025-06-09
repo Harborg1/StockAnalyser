@@ -405,11 +405,6 @@ class App:
                 )) / usd_dkk
             }
         }
-        print(float(self.stock_reader_instance.get_last_trading_day_close(
-                    datetime.now().year,
-                    datetime.now().month,
-                    stocks[5])))
-        
         dkigi_value = portfolio["DKIGI.CO"]["shares"] * portfolio["DKIGI.CO"]["price"]*usd_dkk
         # Calculate portfolio value
         nordnet_value: float = sum(stock["shares"] * stock["price"] for stock in portfolio.values())*usd_dkk-dkigi_value
