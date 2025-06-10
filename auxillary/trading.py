@@ -42,10 +42,9 @@ def send_trading_signal(ticker):
     stock['cum_return_3d'] = stock['day_return_pct'].rolling(window=3).sum()
     stock.dropna(inplace=True)
 
-    latest_day_return = stock['day_return_pct'].iloc[-1]
+    latest_day_return = stock['day_return_pct'].iloc[-1].sum()
     latest_cum_return_3d = stock['cum_return_3d'].iloc[-1]
     latest_close = round(stock['Close'].iloc[-1], 2)
-
     # Priority logic
     signal_text = None
 
