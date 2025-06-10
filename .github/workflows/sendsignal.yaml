@@ -2,7 +2,7 @@ name: Send Stock Movement Signal
 
 on:
   workflow_dispatch:  # Allows you to trigger manually from GitHub UI
-   schedule:
+  schedule:
     - cron: '*/1 13-20 * * 1-5'  # every minute 13:00–20:59 UTC, Mon-Fri
     # This matches Copenhagen 15:00–22:00 when Copenhagen is on UTC+2
 jobs:
