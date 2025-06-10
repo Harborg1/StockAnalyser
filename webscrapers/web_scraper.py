@@ -532,7 +532,6 @@ class web_scraper:
             # Find first non-empty value from the end
             for i,el in enumerate(value_change):
                 text = el.text.strip()
-                print(i,text)
                 if text and i==59: # The specific index we are looking for (24h change in bitcoin holdings)
                     val_chg=text
                     break
