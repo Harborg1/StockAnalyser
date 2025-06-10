@@ -495,7 +495,7 @@ class web_scraper:
             self.driver.execute_script("window.scrollBy(0, 1500);")
 
             # Wait for the scrollable table container to appear
-            scroll_container = WebDriverWait(self.driver, 40).until(
+            scroll_container = WebDriverWait(self.driver, 150).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "ant-table-body"))
             )
 
@@ -532,7 +532,8 @@ class web_scraper:
             # Find first non-empty value from the end
             for i,el in enumerate(value_change):
                 text = el.text.strip()
-                if text and i==57: # The specific index we are looking for (24h change in bitcoin holdings)
+                print(i,text)
+                if text and i==59: # The specific index we are looking for (24h change in bitcoin holdings)
                     val_chg=text
                     break
 
