@@ -37,7 +37,7 @@ with open(SIGNAL_LOG_FILE, "w") as f:
         json.dump(signals_sent_today, f)
 
 def send_trading_signal(ticker):
-    stock = yf.download(ticker)
+    stock = yf.download(ticker, period="5d", interval="1d", auto_adjust=True, progress=False)
     stock['day_return_pct'] = stock['Close'].pct_change() * 100
     stock['cum_return_3d'] = stock['day_return_pct'].rolling(window=3).sum()
     stock.dropna(inplace=True)

@@ -1,6 +1,6 @@
 import yfinance as yf
 
-stock = yf.download("CLSK")
+stock = yf.download("CLSK", period="5d", interval="1d", auto_adjust=True, progress=False)
 
 # Compute percent change over entire Close series
 stock['day_return_pct'] = stock['Close'].pct_change() * 100
