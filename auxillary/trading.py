@@ -21,7 +21,7 @@ if os.path.exists(SIGNAL_LOG_FILE):
             signals_sent_today = json.load(f)
     except json.JSONDecodeError:
         # File exists but is empty or corrupted → reset it
-        print(f"⚠️ Warning: Could not load {SIGNAL_LOG_FILE} — file was empty or corrupted. Resetting.")
+        print(f"Warning: Could not load {SIGNAL_LOG_FILE} — file was empty or corrupted. Resetting.")
         signals_sent_today = {}
 else:
     signals_sent_today = {}
@@ -63,7 +63,7 @@ def send_trading_signal(ticker):
         print("Ticker signals is:",ticker_signals)
         print("Signal text is",signal_text)
         if signal_text in ticker_signals:
-            print(f"⏭️ Signal '{signal_text}' for {ticker} already sent today. Skipping.")
+            print(f"Signal '{signal_text}' for {ticker} already sent today. Skipping.")
             return
         
         # Else: send email
@@ -98,7 +98,7 @@ A trading signal has been detected for {ticker}.
                 json.dump(signals_sent_today, f)
 
         except Exception as e:
-            print(f"❌ Failed to send email for {ticker}: {e}")
+            print(f"Failed to send email for {ticker}: {e}")
     else:
         print(f"No signal detected for {ticker}. No email sent.\n")
         print(latest_cum_return_3d)
