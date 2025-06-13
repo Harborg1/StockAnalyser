@@ -15,3 +15,8 @@ latest_cum_return_3d = round(stock['cum_return_3d'].iloc[-1],2)
 
 
 print(latest_cum_return_3d)
+
+
+latest_close = stock['Close'].iloc[-1].item()
+
+print(latest_close)

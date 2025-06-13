@@ -43,7 +43,7 @@ def send_trading_signal(ticker):
     stock.dropna(inplace=True)
     latest_day_return = round(stock['day_return_pct'].iloc[-1].sum(),2)
     latest_cum_return_3d = round(stock['cum_return_3d'].iloc[-1],2)
-    latest_close = round(stock['Close'].iloc[-1], 2)
+    latest_close = round(stock['Close'].iloc[-1].item(),2)
     # Priority logic
     signal_text = None
 
@@ -100,10 +100,11 @@ A trading signal has been detected for {ticker}.
             print(f"Failed to send email for {ticker}: {e}")
     else:
         print(f"No signal detected for {ticker}. No email sent.\n")
-        print(f"Day return: {latest_close}")
+        print(f"Day return: {latest_day_return}")
         print(f"3 day cummulative return: {latest_cum_return_3d}")
 # Current portfolio
 portfolio = ["NOVO-B.CO", "TSLA", "CLSK", "NVDA"]
 
 for stock in portfolio:
     send_trading_signal(stock)
+
