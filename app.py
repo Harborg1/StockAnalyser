@@ -125,7 +125,7 @@ class App:
         ttk.Label(stock_frame, text="Select stock:", font=('Helvetica', 11)).grid(row=0, column=0, padx=5)
         self.stock_entry = ttk.Combobox(
             stock_frame,
-            values=["TSLA", "CLSK", "NVDA", "PLTR", "SPY", "BTC-USD","^VIX"],
+            values=["TSLA", "CLSK","NOVO-B.CO","NVDA", "PLTR", "SPY", "BTC-USD","^VIX"],
             state="readonly",
             width=15,
             font=('Helvetica', 11)
@@ -135,8 +135,7 @@ class App:
         
         self.web_scraper_instance = web_scraper(self.stock_entry.get())
         self.navigate_button = self.create_styled_button(
-            stock_frame,
-            "→",
+            stock_frame, "→",
             self.re_populate_screen,
             width=3
         )
