@@ -101,7 +101,7 @@ A trading signal has been detected for {ticker}.
     else:
         print(f"Day return: {latest_day_return}")
         print(f"3 day cummulative return: {latest_cum_return_3d}")
-        print(f"No signal detected for {ticker}. No email sent.")
+        print(f"No signal detected for {ticker}. No email sent.\n")
 # Current portfolio
 portfolio = ["NOVO-B.CO", "TSLA", "CLSK", "NVDA"]
 
