@@ -375,7 +375,7 @@ class App:
                 
             },
             stocks[2]: {
-                "shares": 500,
+                "shares": 450,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -393,10 +393,10 @@ class App:
 
              stocks[4]: {
                 "shares": 1,
-                "price": 37372.0/usd_dkk
+                "price": 35900.0/usd_dkk
             },
                 stocks[5]: {
-                "shares": 80,
+                "shares":90,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
