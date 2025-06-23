@@ -158,5 +158,10 @@
         "timestamp": "2025-06-22 10:48:50",
         "24h_change_total": "-4759.66",
         "Total bitcoin": "2,079,269.90"
+    },
+    {
+        "timestamp": "2025-06-23 10:52:45",
+        "24h_change_total": "+1492.12",
+        "Total bitcoin": "2,079,717.15"
     }
 ]
