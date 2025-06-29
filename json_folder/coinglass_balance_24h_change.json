@@ -188,5 +188,14 @@
         "timestamp": "2025-06-28 10:49:17",
         "24h_change_total": "-11795.66",
         "Total bitcoin": "2,053,754.48"
+    },
+    {
+        "timestamp": "2025-06-29 16:01:05",
+        "Total bitcoin": "2,053,921.35"
+    },
+    {
+        "timestamp": "2025-06-29 16:08:40",
+        "Volume Percentage Change (24h)": "-15.52%",
+        "Total bitcoin": "2,053,921.35"
     }
 ]

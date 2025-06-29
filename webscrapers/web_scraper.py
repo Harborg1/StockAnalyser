@@ -490,6 +490,18 @@ class web_scraper:
         json_path = os.path.join("json_folder", "coinglass_balance_24h_change.json")
         self.driver.get(url)
 
+         # Collect visible elements
+        value_change = self.driver.find_elements(
+                By.XPATH,
+                "//div[contains(@class, 'Number undefined') and (contains(@class, 'fall-color') or contains(@class, 'rise-color'))]"
+            )
+        
+        for i,el in enumerate(value_change):
+                text = el.text.strip()
+                print(text)
+                if text and i==0:
+                    pct_chg=text
+                    break
         try:
              # ✅ Scroll the main page to load the lower table with the Total row
             self.driver.execute_script("window.scrollBy(0, 1500);")
@@ -519,32 +531,22 @@ class web_scraper:
             # Optionally scroll .ant-table-body to bottom
             self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
         
-            # Collect visible elements
-            value_change = self.driver.find_elements(
-                By.XPATH,
-                "//div[contains(@class, 'Number undefined') and (contains(@class, 'fall-color') or contains(@class, 'rise-color'))]"
-            )
+           
             BTC_available = self.driver.find_elements(
             By.XPATH,
             "//td[@class='ant-table-cell' and @style='text-align: right;']/div"
         )
-            
-            # Find first non-empty value from the end
-            for i,el in enumerate(value_change):
-                text = el.text.strip()
-                if text and i==59: # The specific index we are looking for (24h change in bitcoin holdings)
-                    val_chg=text
-                    break
 
             for i,el in enumerate(BTC_available):
                 text = el.text.strip()
+                # print("Text",text,"i",i)
                 if text and i==80: # The index where the bitcoin available the last 24h is at.
                     val_btc = text
                     break
 
             data = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "24h_change_total": val_chg,
+                "Volume Percentage Change (24h)":pct_chg,
                 "Total bitcoin": val_btc,
             }
 
@@ -558,7 +560,6 @@ class web_scraper:
 
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(existing, f, indent=4)
-            print(f"✅ Saved Coinglass 24h change: {val_chg}")
             print(f"✅ Saved Coinglass total bictoin: {val_btc}")
         except Exception as e:
             print(f"Failed to scrape the data...: {e}")
