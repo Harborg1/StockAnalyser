@@ -484,87 +484,83 @@ class web_scraper:
         plt.tight_layout()
         plt.show()
 
-    def scrape_coinglass_change(self):
+    def scrape_coinglass_change(self, attempts=5):
         """Scrapes the 24h Change value from Coinglass Balance page and saves to JSON."""
         url = "https://www.coinglass.com/Balance"
         json_path = os.path.join("json_folder", "coinglass_balance_24h_change.json")
-        self.driver.get(url)
 
-         # Collect visible elements
-        value_change = self.driver.find_elements(
-                By.XPATH,
-                "//div[contains(@class, 'Number undefined') and (contains(@class, 'fall-color') or contains(@class, 'rise-color'))]"
-            )
-        
-        for i,el in enumerate(value_change):
-                text = el.text.strip()
-                print(text)
-                if text and i==0:
-                    pct_chg=text
-                    break
-        try:
-             # ✅ Scroll the main page to load the lower table with the Total row
-            self.driver.execute_script("window.scrollBy(0, 1500);")
+        for attempt in range(1, attempts + 1):
+            try:
+                print(f"🔁 Attempt {attempt}/{attempts}")
+                self.driver.get(url)
 
-            # Wait for the scrollable table container to appear
-            scroll_container = WebDriverWait(self.driver, 150).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "ant-table-body"))
-            )
+                # Get 24h percentage change
+                value_change = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_all_elements_located((
+                        By.XPATH,
+                        "//div[contains(@class, 'Number undefined') and (contains(@class, 'fall-color') or contains(@class, 'rise-color'))]"
+                    ))
+                )
 
-            # Scroll progressively inside the scrollable table
-            unchanged_attempts = 0
-            prev_row_count = 0
-            self.driver.execute_script("arguments[0].scrollBy(0, 20);", scroll_container)
-            time.sleep(1)
-            rows = self.driver.find_elements(By.CSS_SELECTOR, ".ant-table-row")
-            current_row_count = len(rows)
-            print(f"Visible rows: {current_row_count}")
-            if current_row_count == prev_row_count:
-                unchanged_attempts += 1
-            else:
-                unchanged_attempts = 0
+                pct_chg = None
+                for j, el in enumerate(value_change):
+                    text = el.text.strip()
+                    print(text)
+                    if text and j == 0:
+                        pct_chg = text
+                        break
+                if not pct_chg:
+                    raise ValueError("⚠️ Failed to find 24h % change.")
 
-            if unchanged_attempts >= 3:
-                print("Scrolling complete — all rows likely loaded.")
-            prev_row_count = current_row_count
+                # Scroll to reveal table
+                self.driver.execute_script("window.scrollBy(0, 1500);")
+                scroll_container = WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "ant-table-body"))
+                )
+                self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
+                time.sleep(1.5)
 
-            # Optionally scroll .ant-table-body to bottom
-            self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
-        
-           
-            BTC_available = self.driver.find_elements(
-            By.XPATH,
-            "//td[@class='ant-table-cell' and @style='text-align: right;']/div"
-        )
+                # Find BTC total at index 80
+                val_btc = None
+                btc_elements = self.driver.find_elements(
+                    By.XPATH,
+                    "//td[@class='ant-table-cell' and @style='text-align: right;']/div"
+                )
+                for j, el in enumerate(btc_elements):
+                    text = el.text.strip()
+                    if text and j == 80:
+                        val_btc = text
+                        break
+                if not val_btc:
+                    raise ValueError("⚠️ Failed to find BTC value at index 80.")
 
-            for i,el in enumerate(BTC_available):
-                text = el.text.strip()
-                # print("Text",text,"i",i)
-                if text and i==80: # The index where the bitcoin available the last 24h is at.
-                    val_btc = text
-                    break
+                # Prepare data
+                data = {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Volume Percentage Change (24h)": pct_chg,
+                    "Total bitcoin": val_btc,
+                }
 
-            data = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Volume Percentage Change (24h)":pct_chg,
-                "Total bitcoin": val_btc,
-            }
-
-            if os.path.exists(json_path):
-                with open(json_path, "r", encoding="utf-8") as f:
-                    existing = json.load(f)
-            else:
+                # Save to JSON
+                if os.path.exists(json_path):
+                    with open(json_path, "r", encoding="utf-8") as f:
+                        existing = json.load(f)
+                else:
                     existing = []
 
-            existing.append(data)
+                existing.append(data)
 
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(existing, f, indent=4)
-            print(f"✅ Saved Coinglass total bictoin: {val_btc}")
-        except Exception as e:
-            print(f"Failed to scrape the data...: {e}")
-        finally:
-            pass
+                with open(json_path, "w", encoding="utf-8") as f:
+                    json.dump(existing, f, indent=4)
+
+                print(f"Saved Coinglass data: {data}")
+                return  # Success → exit function
+
+            except Exception as e:
+                print(f"Attempt {attempt} failed: {e}")
+                if attempt == attempts:
+                    print("All attempts failed")
+
 
     def scrape_useful_data(self):
         from datetime import datetime

@@ -274,9 +274,7 @@ class App:
         full_timestamps = [datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") for entry in data]
         dates = [ts.date() for ts in full_timestamps]
         total_bitcoin = [float(entry["Total bitcoin"].replace(",", "")) for entry in data]
-        # The 24h change total for the first value of the last 10 days.
-        change =  [float(entry["24h_change_total"].replace(",", "")) for entry in data][-10:][0]
-
+   
         # Get the data for the last 10 days
         data_10d =total_bitcoin[-10:]
         # Get the dates for the last 10 days
@@ -285,7 +283,7 @@ class App:
         fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
     
     
-        btc_changes =  [change if i == 0 else data_10d[i] - data_10d[i - 1] for i in range(len(data_10d))]
+        btc_changes =  [0 if i == 0 else data_10d[i] - data_10d[i - 1] for i in range(len(data_10d))]
         bar_colors = ['green' if change >= 0 else 'red' for change in btc_changes]
         bars = ax.bar(dates_10d, data_10d, color=bar_colors, alpha=0.8, width=0.4)
 
