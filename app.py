@@ -290,9 +290,10 @@ class App:
         btc_formatter = EngFormatter(unit="", places=3)
         ax.yaxis.set_major_formatter(btc_formatter)
 
-        for i, (bar, change) in enumerate(zip(bars, btc_changes)):
+        for (bar, change) in (zip(bars, btc_changes)):
             sign = "+" if change >= 0 else ""
-            ax.annotate(f"{sign}{change:,.0f}", xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+            short_change = f"{sign}{round(change/1000):,}K" if abs(change) >= 1000 else f"{sign}{change:,.0f}"
+            ax.annotate(short_change, xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
                         xytext=(0, 5), textcoords="offset points", ha='center', fontsize=6.3)
 
         ax.set_title("Total BTC Held on Exchanges", fontsize=12)
