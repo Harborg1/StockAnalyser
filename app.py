@@ -347,7 +347,7 @@ class App:
         )
         back_button.grid(row=1, column=0, sticky="w", padx=5, pady=5)
 
-        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO", "CASH","NOVO-B.CO"]
+        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO", "CASH"]
         usd_dkk: float = float(self.stock_reader_instance.get_last_trading_day_close(
             datetime.now().year,
             datetime.now().month,
@@ -356,7 +356,7 @@ class App:
         # Portfolio data
         portfolio: Dict[str, Dict[str, float]] = {
             stocks[0]: {
-                "shares": 20,
+                "shares": 55,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -364,7 +364,7 @@ class App:
                 ))
             },
             stocks[1]: {
-                "shares": 155,
+                "shares": 142,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -373,7 +373,7 @@ class App:
                 
             },
             stocks[2]: {
-                "shares": 450,
+                "shares": 565,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -391,27 +391,9 @@ class App:
 
              stocks[4]: {
                 "shares": 1,
-                "price": 35900.0/usd_dkk
-            },
-                stocks[5]: {
-                "shares":90,
-                "price": float(self.stock_reader_instance.get_last_trading_day_close(
-                    datetime.now().year,
-                    datetime.now().month,
-                    stocks[5]
-                )) / usd_dkk
+                "price": 4000/usd_dkk
             }
-        }
-        dkigi_value = portfolio["DKIGI.CO"]["shares"] * portfolio["DKIGI.CO"]["price"]*usd_dkk
-        # Calculate portfolio value
-        nordnet_value: float = sum(stock["shares"] * stock["price"] for stock in portfolio.values())*usd_dkk-dkigi_value
-        db_value = dkigi_value
-        total_value = nordnet_value+db_value
-
-        # Display portfolio value
-        tk.Label(self.main_frame, text=f"NordNet Value: {nordnet_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=3, column=0)
-        tk.Label(self.main_frame, text=f"db_value: {db_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=4, column=0)
-        tk.Label(self.main_frame, text=f"total value: {total_value:,.2f}DKK", font=("Arial", 16), fg="green").grid(row=5, column=0)
+            }
 
         # Prepare data for the pie chart
         labels: List[str] = list(portfolio.keys())
