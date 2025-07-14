@@ -1,6 +1,6 @@
 import pandas as pd
 import yfinance as yf
-from datetime import datetime
+from datetime import datetime, timedelta
 # A superclass for the stock- and crypto class respectively
 class MarketReaderBase: 
     def __init__(self):
@@ -8,7 +8,7 @@ class MarketReaderBase:
         self.date_cache =  {}
         self.monthly_date = {}
         self.start_date = "2024-01-01"
-        self.end_date   =  datetime.now().strftime("%Y-%m-%d")
+        self.end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     def get_start_and_end_date(self, year, month):
         key = (year, month)
         if key in self.monthly_date:

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv("passcodes.env")
 
 # Create client using the API key from the environment variable
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("CHAT_GPT_KEY"))
 
 # Initialize chat history
 messages = [{"role": "system", "content": "You are a helpful assistant."}]

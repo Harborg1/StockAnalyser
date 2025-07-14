@@ -104,7 +104,7 @@ A trading signal has been detected for {ticker}.
         print(f"No signal detected for {ticker}. No email sent.\n")
         print("\n")
 # Current portfolio
-portfolio = ["NOVO-B.CO", "TSLA", "CLSK", "NVDA"]
+portfolio = ["TSLA", "CLSK", "NVDA"]
 
 for stock in portfolio:
     send_trading_signal(stock)

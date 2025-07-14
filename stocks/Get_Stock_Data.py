@@ -95,20 +95,20 @@ class stock_reader(MarketReaderBase):
 
         plt.close('all')
 
-        # Load the earnings dates from the JSON file
         current_date = datetime.now()
         current_month = current_date.month
 
         earnings_data = self.get_json_data("stock_earnings.json")
 
-        # Convert earnings data to a dictionary with dates as keys
+
         earnings_dates = {
-            pd.Timestamp(item["date"]): item["stock"] for item in earnings_data if item["stock"] == stock
+            pd.Timestamp(item["date"]) for item in earnings_data if item["stock"] == stock
         }
 
         cpi_data_all = self.get_json_data("cpi.json")
 
         fomc_data_all = self.get_json_data("fomc.json")
+        
         cpi_data = {
             pd.Timestamp(item["date"]) for item in cpi_data_all
         }
