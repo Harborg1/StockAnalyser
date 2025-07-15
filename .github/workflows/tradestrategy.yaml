@@ -2,7 +2,7 @@ name: Send Trading Strategy
 
 on:
   schedule:
-    - cron: '0 13 * * 1-5'  # Runs at 13:00 UTC = 15:00 Copenhagen (UTC+2) Mon–Fri
+    - cron: '0 12 * * 1-5'  # Runs at 12:00 UTC = 14:00 Copenhagen (UTC+2) Mon–Fri
   workflow_dispatch:
 
 jobs:
