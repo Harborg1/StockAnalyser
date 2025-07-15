@@ -21,7 +21,7 @@ jobs:
         run: pip install -r packages/requirements2.txt
 
       - name: Run trading strategy and send email
-        run: python send_strategy_email.py
+        run: python strategy.py
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
