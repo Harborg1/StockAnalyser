@@ -268,5 +268,60 @@
         "timestamp": "2025-07-15 10:53:10",
         "Volume Percentage Change (24h)": "-5.12%",
         "Total bitcoin": "2,156,327.23"
+    },
+    {
+        "timestamp": "2025-07-16 10:53:42",
+        "Volume Percentage Change (24h)": "+8.46%",
+        "Total bitcoin": "2,134,752.12"
+    },
+    {
+        "timestamp": "2025-07-17 10:53:42",
+        "Volume Percentage Change (24h)": "+17.34%",
+        "Total bitcoin": "2,126,590.45"
+    },
+    {
+        "timestamp": "2025-07-18 10:54:29",
+        "Volume Percentage Change (24h)": "+11.03%",
+        "Total bitcoin": "2,159,195.10"
+    },
+    {
+        "timestamp": "2025-07-19 10:52:13",
+        "Volume Percentage Change (24h)": "-26.32%",
+        "Total bitcoin": "2,154,551.85"
+    },
+    {
+        "timestamp": "2025-07-20 10:52:23",
+        "Volume Percentage Change (24h)": "-31.34%",
+        "Total bitcoin": "2,155,815.86"
+    },
+    {
+        "timestamp": "2025-07-21 10:55:16",
+        "Volume Percentage Change (24h)": "+54.83%",
+        "Total bitcoin": "2,155,415.32"
+    },
+    {
+        "timestamp": "2025-07-22 10:54:08",
+        "Volume Percentage Change (24h)": "+21.61%",
+        "Total bitcoin": "2,155,685.09"
+    },
+    {
+        "timestamp": "2025-07-23 10:54:51",
+        "Volume Percentage Change (24h)": "-18.74%",
+        "Total bitcoin": "2,144,922.31"
+    },
+    {
+        "timestamp": "2025-07-24 10:54:23",
+        "Volume Percentage Change (24h)": "+23.52%",
+        "Total bitcoin": "2,145,474.92"
+    },
+    {
+        "timestamp": "2025-07-25 10:54:53",
+        "Volume Percentage Change (24h)": "-6.68%",
+        "Total bitcoin": "2,145,408.84"
+    },
+    {
+        "timestamp": "2025-07-26 10:51:20",
+        "Volume Percentage Change (24h)": "-39.11%",
+        "Total bitcoin": "2,145,427.48"
     }
 ]
