@@ -124,7 +124,7 @@ class App:
         ttk.Label(stock_frame, text="Select stock:", font=('Helvetica', 11)).grid(row=0, column=0, padx=5)
         self.stock_entry = ttk.Combobox(
             stock_frame,
-            values=["TSLA", "CLSK","NOVO-B.CO","NVDA", "PLTR", "SPY", "BTC-USD","^VIX"],
+            values=["TSLA", "CLSK", "NOVO-B.CO", "NVDA", "PLTR", "SPY", "BTC-USD", "^VIX"],
             state="readonly",
             width=15,
             font=('Helvetica', 11)
@@ -134,9 +134,7 @@ class App:
         
         self.web_scraper_instance = web_scraper(self.stock_entry.get())
         self.navigate_button = self.create_styled_button(
-            stock_frame, "→",
-            self.re_populate_screen,
-            width=3
+            stock_frame, "→", self.re_populate_screen, width=3
         )
         self.navigate_button.grid(row=0, column=2, padx=5)
 
@@ -166,9 +164,9 @@ class App:
         self.month_entry.grid(row=0, column=3, padx=5)
         self.month_entry.set(datetime.now().month)
 
-        # Action buttons frame
+        # Button to show market activity
         button_frame = ttk.Frame(self.main_frame)
-        button_frame.grid(row=3, column=0, sticky="w", pady=15)
+        button_frame.grid(row=3, column=0, sticky="w", pady=10)
         
         self.show_button = self.create_styled_button(
             button_frame,
@@ -177,44 +175,53 @@ class App:
         )
         self.show_button.grid(row=0, column=0, padx=5)
 
-        # Sentiment display
-        sentiment_frame = ttk.Frame(button_frame)
-        sentiment_frame.grid(row=0, column=1, padx=20)
-        self.sentiment_text = tk.Text(
-            sentiment_frame,
-            height=1,
-            width=25,
+        # Combined info frame for sentiment and market state
+        info_frame = ttk.Frame(self.main_frame)
+        info_frame.grid(row=4, column=0, sticky="w", padx=10, pady=(0, 5))
+
+        self.sentiment_label = tk.Label(
+            info_frame,
+            text="Sentiment value: --",
             font=('Helvetica', 11),
             bg=self.colors['background'],
-            relief='flat'
+            fg=self.colors['text'],
+            anchor="w",
+            justify="left"
         )
-        self.sentiment_text.grid(row=0, column=0)
-        self.get_sentiment_data()
+        self.sentiment_label.grid(row=0, column=0, sticky="w", padx=(0, 15))
 
-        # Additional actions frame
+        self.market_state_label = tk.Label(
+            info_frame,
+            text="SPY market state: --",
+            font=('Helvetica', 11),
+            bg=self.colors['background'],
+            fg=self.colors['text'],
+            anchor="w",
+            justify="left"
+        )
+        self.market_state_label.grid(row=1, column=0, sticky="w")
+
+        self.show_market_state()
+
+        # Action buttons
         action_frame = ttk.Frame(self.main_frame)
-        action_frame.grid(row=4, column=0, sticky="w", pady=10)
-        
+        action_frame.grid(row=5, column=0, sticky="w", pady=10)
+
         self.download_button = self.create_styled_button(
-            action_frame,
-            "Download",
-            self.download_calendar
+            action_frame, "Download", self.download_calendar
         )
         self.download_button.grid(row=0, column=0, padx=5)
-        
+
         self.fetch_news_button = self.create_styled_button(
-            action_frame,
-            "Fetch News",
-            self.fetch_news
+            action_frame, "Fetch News", self.fetch_news
         )
         self.fetch_news_button.grid(row=0, column=1, padx=5)
-        
+
         self.crypto_button = self.create_styled_button(
-            action_frame,
-            "Crypto Metrics",
-            self.open_crypto_page
+            action_frame, "Crypto Metrics", self.open_crypto_page
         )
         self.crypto_button.grid(row=0, column=2, padx=5)
+
 
     def open_crypto_page(self) -> None:
 
@@ -671,28 +678,7 @@ class App:
         # Scrape earnings date for any stock
         self.web_scraper_instance.scrape_earnings()
 
-    def get_sentiment_data(self) -> None:
-        """Retrieve and display sentiment data for the current day.
-        This method:
-        1. Attempts to load sentiment data from a JSON file
-        2. If the data is not available or outdated, scrapes new data
-        3. Displays the sentiment value in the UI
-        """
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        try:
-            # Check if the data is in the .json file
-            with open('json_folder\\feargreed.json', 'r', encoding='utf-8') as f:
-                sentiment_data = json.load(f)
-                if sentiment_data[-1]["date"] == current_date:
-                    self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_data[-1]["fear_greed_index"]}')
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Could not retrieve the data: {e}")
-        if sentiment_data[-1]["date"] != current_date:
-            sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(self.web_scraper_instance.sentiment_url)
-            if sentiment_value:
-                self.sentiment_text.insert(tk.END, f'Sentiment value: {sentiment_value}')
-            else:
-                self.sentiment_text.insert(tk.END, "Could not retrieve sentiment data.")
+    
     def show_calendar(self) -> None:
         """Display the stock calendar for the selected year, month, and stock.
         This method:
@@ -723,6 +709,44 @@ class App:
         # Save the figure as a PDF
         filename: str = f"{stock}_{year}_{month}.pdf"
         self.figure.savefig(filename)
+
+    def show_market_state(self) -> None:
+
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        try:
+            # Check if the data is in the .json file
+            with open('json_folder\\feargreed.json', 'r', encoding='utf-8') as f:
+                sentiment_data = json.load(f)
+                if sentiment_data[-1]["date"] == current_date:
+                    self.sentiment_label.config(text = f'Sentiment value: {sentiment_data[-1]["fear_greed_index"]}')
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Could not retrieve the data: {e}")
+        if sentiment_data[-1]["date"] != current_date:
+            sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(self.web_scraper_instance.sentiment_url)
+            if sentiment_value:
+                self.sentiment_label.config(text =  f'Sentiment value: {sentiment_value}')
+            else:
+                self.sentiment_label.config(text = "Could not retrieve sentiment data.")
+
+        # Update market state
+        try:
+            diff = self.stock_reader_instance.get_spy_distance_from_ath()
+            if isinstance(diff, str):
+                state_text = f"SPY: {diff}"
+            else:
+                if diff >= -10:
+                    label = "BULL MARKET"
+                elif -20 < diff < -10:
+                    label = "CORRECTION"
+                elif -30 < diff <= -20:
+                    label = "BEAR MARKET"
+                else:
+                    label = "RECESSION"
+                state_text = f"SPY is {diff:.2f}% from ATH: {label}"
+        except Exception as e:
+            state_text = f"SPY error: {e}"
+        self.market_state_label.config(text=state_text)
+
     
 # Initialize Tkinter
 if __name__ == "__main__":
