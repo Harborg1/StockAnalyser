@@ -6,12 +6,8 @@ import statsmodels.api as sm
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
 
 TICKER = 'SPY'
-
 INTERVAL = '1h'
 
 if INTERVAL == '1h':
@@ -20,7 +16,7 @@ else:
 
     PERIOD = 'max'
 
-SHIFT = 55
+SHIFT = 9
 MACD_FAST = 12
 MACD_SLOW = 27
 MACD_SPAN = 9
@@ -87,60 +83,41 @@ def add_target(df, shift=SHIFT):
     df['Target'] = (df[f'Close + {shift}'] > df['Close']) * 1
     return df
 
-
-def generate_logistic_regression_output(df, features=STRATEGY, target='Target', splits=5):
+def generate_logistic_regression_output(df, features=STRATEGY, target='Target', test_size=0.2):
     subset = df[features + [target, 'Datetime', 'Close']].dropna()
+    
     dates = subset['Datetime']
     closes = subset['Close']
+    
     X = subset[features]
     y = subset[target]
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, shuffle=False
+    )
 
-    tscv = TimeSeriesSplit(n_splits=splits)
-    all_results = []
+    X_train_const = sm.add_constant(X_train)
+    X_test_const = sm.add_constant(X_test)
 
-    for _, (train_idx, test_idx) in enumerate(tscv.split(X_scaled)):
-        X_train, X_test = X_scaled[train_idx], X_scaled[test_idx]
-        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-        close_test = closes.iloc[test_idx]
-        date_test = dates.iloc[test_idx]
+    model = sm.Logit(y_train, X_train_const).fit()
+    y_pred_prob = model.predict(X_test_const)
+    y_pred = (y_pred_prob > 0.5).astype(int)
 
-        model = LogisticRegression(penalty='l2', C=0.1, solver='liblinear', class_weight='balanced')
-        model.fit(X_train, y_train)
-        y_pred_prob = model.predict_proba(X_test)[:, 1]
-        y_pred = (y_pred_prob > 0.6).astype(int)
+    print(model.summary())
 
-         # Ensure all arrays are converted to the same length before building the DataFrame
-        date_array = np.array(date_test).reshape(-1)
-        close_array = np.array(close_test).reshape(-1)
-        target_array = np.array(y_test).reshape(-1)
-        pred_array = np.array(y_pred).reshape(-1)
-        prob_array = np.array(y_pred_prob).reshape(-1)
-
-        min_len = min(len(date_array), len(close_array), len(target_array), len(pred_array), len(prob_array))
-
-
-        df_out = pd.DataFrame({
-            'Datetime': date_array[:min_len],
-            'Close': close_array[:min_len],
-            'Target': target_array[:min_len],
-            'Prediction': pred_array[:min_len],
-            'Probability': prob_array[:min_len]
-        })
-
-        all_results.append(df_out)
-
-    test_df = pd.concat(all_results).reset_index(drop=True)
+    test_df = X_test.copy()
+    test_df['Target'] = y_test
+    test_df['Prediction'] = y_pred
+    test_df['Datetime'] = dates.loc[X_test.index].values  # <-- fixed here
+    test_df['Close'] = closes.loc[X_test.index].values
 
     plt.figure()
-    plt.hist(test_df['Probability'], bins=50)
+    plt.hist(y_pred_prob, bins=50)
     plt.title('Distribution of Logistic Predictions')
     plt.tight_layout()
     plt.show()
 
-    return test_df, test_df['Target'], test_df['Probability']
+    return test_df, y_test, y_pred_prob
 
 
 
@@ -242,6 +219,8 @@ def backtest_strategy(df, shift, threshold=0.6, original_df=None):
     return trade_log
 
 
+
+
 def evaluate_shift(df, shift, features=STRATEGY, target='Target', test_size=0.2):
     df_shifted = add_target(df.copy(), shift=shift)
     subset = df_shifted[features + [target]].dropna()
@@ -267,18 +246,23 @@ def evaluate_shift(df, shift, features=STRATEGY, target='Target', test_size=0.2)
         roc_auc = 0.0
 
     return shift, roc_auc
+
 def main():
-    original_df = get_data()
+    original_df = get_data()  # Save before adding indicators
     df = original_df.copy()
+    
+    # optimal_shift = find_optimal_shift(df, shift_range=range(1, 150))
+
+    optimal_shift = 60
     df = add_MACD(df)
     df = add_MFI(df)
     df = add_BB(df)
     df = add_RSI(df)
-    df = add_target(df, shift=SHIFT)
-    test_df, _, _ = generate_logistic_regression_output(df)
+    df = add_target(df, shift=60)
+    test_df, y_test, y_pred_prob = generate_logistic_regression_output(df)
+    test_df = analyze_logistic_regresison(test_df, y_true=y_test, y_scores=y_pred_prob)
     test_df = test_df.loc[:, ~test_df.columns.duplicated()]
-    trades = backtest_strategy(test_df, shift=SHIFT, threshold=0.6, original_df=original_df)
+    trades = backtest_strategy(test_df, shift=optimal_shift, threshold=0.6, original_df=original_df)
     return trades
 
-
-df = main()
+df = main() 

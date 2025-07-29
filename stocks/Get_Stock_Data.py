@@ -289,14 +289,14 @@ class stock_reader(MarketReaderBase):
     def get_spy_distance_from_ath(self) -> float | str:
         try:
             # Download all historical data for SPY
-            spy_data = yf.download("SPY", start="1993-01-01")
+            spy_data = yf.download("SPY", start="1993-01-01",progress=False, auto_adjust=False)
             if spy_data.empty:
                 return "Failed to retrieve SPY data."
 
             # Get all-time high close price
             all_time_high = spy_data['Close']["SPY"].max()
             # Get latest closing price (most recent available trading day)
-            latest_close = spy_data['Close']["SPY"][-1]
+            latest_close = spy_data['Close']["SPY"].iloc[-1]
 
             # Calculate percentage difference from ATH
             percentage_below_ath = round(((latest_close / all_time_high) - 1) * 100, 2)
@@ -304,6 +304,4 @@ class stock_reader(MarketReaderBase):
             return percentage_below_ath  # Negative means below ATH
         except Exception as e:
             return f"Error: {str(e)}"
-
-
         
