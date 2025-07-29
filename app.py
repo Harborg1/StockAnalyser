@@ -281,16 +281,15 @@ class App:
         full_timestamps = [datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") for entry in data]
         dates = [ts.date() for ts in full_timestamps]
         total_bitcoin = [float(entry["Total bitcoin"].replace(",", "")) for entry in data]
-   
+
         # Get the data for the last 10 days
         data_10d =total_bitcoin[-10:]
         # Get the dates for the last 10 days
         dates_10d = dates[-10:]
 
         fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
-    
-    
-        btc_changes =  [0 if i == 0 else data_10d[i] - data_10d[i - 1] for i in range(len(data_10d))]
+
+        btc_changes =  [data_10d[0]-total_bitcoin[-11] if i == 0 else data_10d[i] - data_10d[i - 1] for i in range(len(data_10d))]
         bar_colors = ['green' if change >= 0 else 'red' for change in btc_changes]
         bars = ax.bar(dates_10d, data_10d, color=bar_colors, alpha=0.8, width=0.4)
 
@@ -711,7 +710,6 @@ class App:
         self.figure.savefig(filename)
 
     def show_market_state(self) -> None:
-
         current_date = datetime.now().strftime("%Y-%m-%d")
         try:
             # Check if the data is in the .json file
@@ -735,19 +733,18 @@ class App:
                 state_text = f"SPY: {diff}"
             else:
                 if diff >= -10:
-                    label = "BULL MARKET"
+                    label = "🐂 Bull Market"
                 elif -20 < diff < -10:
-                    label = "CORRECTION"
+                    label = "⚠️ Correction"
                 elif -30 < diff <= -20:
-                    label = "BEAR MARKET"
+                    label = "🐻 Bear Market"
                 else:
-                    label = "RECESSION"
+                    label = "📉 Recession"
                 state_text = f"SPY is {diff:.2f}% from ATH: {label}"
         except Exception as e:
             state_text = f"SPY error: {e}"
         self.market_state_label.config(text=state_text)
 
-    
 # Initialize Tkinter
 if __name__ == "__main__":
     root = tk.Tk()
