@@ -102,6 +102,7 @@ class App:
         return btn
 
     def populate_main_screen(self) -> None:
+        self.cleanup_canvas()
         """Populate the main screen with styled components."""
         # Clear the main frame
         for widget in self.main_frame.winfo_children():
@@ -225,6 +226,7 @@ class App:
 
     def open_crypto_page(self) -> None:
 
+        self.cleanup_canvas()
         """Displays different bitcoin data including price, moving average and BTC available on global exchanges """
         # Clear frame
         for widget in self.main_frame.winfo_children():
@@ -331,6 +333,8 @@ class App:
         3. Displays total portfolio value
         4. Creates a pie chart showing portfolio distribution
         """
+
+        self.cleanup_canvas()
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
@@ -362,7 +366,7 @@ class App:
         # Portfolio data
         portfolio: Dict[str, Dict[str, float]] = {
             stocks[0]: {
-                "shares": 55,
+                "shares": 50,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -370,7 +374,7 @@ class App:
                 ))
             },
             stocks[1]: {
-                "shares": 142,
+                "shares": 133,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -379,7 +383,7 @@ class App:
                 
             },
             stocks[2]: {
-                "shares": 565,
+                "shares": 300,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -397,12 +401,13 @@ class App:
 
              stocks[4]: {
                 "shares": 1,
-                "price": 4000/usd_dkk
+                "price": 46500/usd_dkk
             }
             }
-
+        
         # Prepare data for the pie chart
-        labels: List[str] = list(portfolio.keys())
+        labels: List[str] = ["TSLA", "NVDA", "CLSK", "ETF", "CASH"]
+
         sizes: List[float] = [stock["shares"] * stock["price"] for stock in portfolio.values()]
         # Define a larger color palette
         colors = [
