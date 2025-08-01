@@ -223,7 +223,7 @@ class stock_reader(MarketReaderBase):
                 elif current_date in earnings_dates:
                     day_rect.set_facecolor("purple")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
-                    ax.text(day_idx + 0.5, -week_idx - 0.5, str(earnings_dates[current_date] + " " + "earnings date"),
+                    ax.text(day_idx + 0.5, -week_idx - 0.5, "Earnings date",
                             ha='center', va='center', fontsize=7, weight='bold', color='black')
 
                 elif current_date in stock_market_holidays_list:
@@ -286,15 +286,17 @@ class stock_reader(MarketReaderBase):
         else:  # Show the plot if we want to get a monthly view
             plt.show()
     
+   
     def get_spy_distance_from_ath(self) -> float | str:
         try:
             # Download all historical data for SPY
-            spy_data = yf.download("SPY", start="1993-01-01",progress=False, auto_adjust=False)
+            spy_data = yf.download("SPY", progress=False, auto_adjust=False)
             if spy_data.empty:
                 return "Failed to retrieve SPY data."
 
             # Get all-time high close price
             all_time_high = spy_data['Close']["SPY"].max()
+
             # Get latest closing price (most recent available trading day)
             latest_close = spy_data['Close']["SPY"].iloc[-1]
 
@@ -304,4 +306,6 @@ class stock_reader(MarketReaderBase):
             return percentage_below_ath  # Negative means below ATH
         except Exception as e:
             return f"Error: {str(e)}"
+
+            
         

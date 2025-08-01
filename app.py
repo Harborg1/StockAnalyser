@@ -137,6 +137,7 @@ class App:
         self.navigate_button = self.create_styled_button(
             stock_frame, "→", self.re_populate_screen, width=3
         )
+
         self.navigate_button.grid(row=0, column=2, padx=5)
 
         # Date selection frame
