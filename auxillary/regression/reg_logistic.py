@@ -150,8 +150,6 @@ def generate_logistic_regression_output(df, features=STRATEGY, target='Target', 
 
     return test_df, test_df['Target'], test_df['Probability']
 
-
-
 def analyze_logistic_regresison(df, y_true, y_scores, title=f'{STRATEGY} ROC Plot'):
     cm = confusion_matrix(df['Target'], df['Prediction'])
     labels = ['Down (0)', 'Up (1)']
@@ -318,19 +316,20 @@ def check_for_overfitting_with_shift_analysis(df_raw, train_ratio=0.8, shift_ran
 def main():
     original_df = get_data()
     
-    # 🔍 Step 1: Find best SHIFT
+    # Step 1: Find best SHIFT
     global optimal_shift 
     optimal_shift = find_optimal_shift(original_df, SHIFT_RANGE)
     print(f"Using SHIFT = {optimal_shift}")
 
-    # ✅ Step 2: Build feature set using the best shift
+
+    # Step 2: Build feature set using the best shift
     df = build_feature_set(original_df, shift=optimal_shift)
 
-    # ✅ Step 3: Train and test model
+    # Step 3: Train and test model
     test_df, _, _ = generate_logistic_regression_output(df)
     test_df = test_df.loc[:, ~test_df.columns.duplicated()]
 
-    # ✅ Step 4: Backtest
+    # Step 4: Backtest
     trades = backtest_strategy(test_df, shift=optimal_shift, threshold=0.5, original_df=original_df)
 
     check_for_overfitting_with_shift_analysis(original_df)
