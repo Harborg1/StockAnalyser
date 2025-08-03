@@ -32,10 +32,11 @@ OPTIMAL_SHIFT = None
 
 def get_data(ticker=TICKER, lookback=LOOKBACK, interval=INTERVAL):
     df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD)
+    df.rename(columns={'Date': 'Datetime'}, inplace=True)
     df.columns = df.columns.get_level_values(0)
-    df = df.reset_index(drop=True)
+    df = df.reset_index()
 
-    for c in df.columns:
+    for c in df.select_dtypes(include=[np.number]).columns:
         df[f'{c}_change'] = df[c].pct_change() * 100
 
     # only return the subset of data you are interested in
@@ -144,7 +145,7 @@ def add_MFI(df, length=MFI_LENGTH, overbought=MFI_OVERBOUGHT, oversold=MFI_OVERS
     plt.axhline(oversold, color='green', linestyle='--', label='Oversold')
     plt.title('Money Flow Index')
     plt.legend()
-    plt.show()
+    #plt.show()
 
     return df.dropna()
 
@@ -169,8 +170,6 @@ def generate_regression_output(df, features=STRATEGY, target='Target', cutoff=CU
     df = df.loc[subset.index]
     df['Prediction'] = (y_pred_prob > cutoff).astype(int)
     return df, y, y_pred_prob
-
-
 
 
 def generate_xgb_output(df, features=STRATEGY, target='Target', cutoff=CUTOFF):
@@ -220,7 +219,7 @@ def add_roc_plot(y_true, y_scores, title="ROC Curve"):
     plt.legend(loc="lower right")
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
 def plot_prediction_distribution(y_pred_prob):
     plt.figure()
@@ -272,6 +271,7 @@ def make_datasets():
 
     return df, train, test
 
+
 df, train, test = make_datasets()
 
 def study_dataset(df):
@@ -309,24 +309,19 @@ def study_dataset(df):
 
 def backtest_strategy(df, shift, threshold=0.6, original_df=None):
     df = df.copy()
-    print(df.columns)
     df = df.dropna(subset=['Prediction', 'Close'])
-
     df['Buy_Signal'] = df['Prediction'] > threshold
     df['Entry_Price'] = df['Close']
     df['Exit_Price'] = df['Close'].shift(-shift)
     df['PnL'] = np.where(df['Buy_Signal'], df['Exit_Price'] - df['Entry_Price'], 0)
-
+    df['Exit_Time'] = df['Datetime'].shift(-shift)
     trades = df[df['Buy_Signal']].copy()
     trades = trades.dropna(subset=['Exit_Price'])
 
-    if 'Datetime' in trades.columns:
-        trade_log = trades[['Datetime', 'Entry_Price', 'Exit_Price', 'PnL', 'Prediction']].copy()
-    else:
-        trade_log = trades[['Entry_Price', 'Exit_Price', 'PnL', 'Prediction']].copy()
-        trade_log['Datetime'] = pd.NaT
-
+    trade_log = trades[['Datetime', 'Exit_Time','Entry_Price', 'Exit_Price', 'PnL', 'Prediction']].copy()
     trade_log['Datetime'] = trade_log['Datetime'].astype(str)
+    trade_log['Exit_Time'] = trade_log['Exit_Time'].astype(str)
+
     trade_log.index.name = 'TradeIndex'
 
     total_trades = len(trade_log)
