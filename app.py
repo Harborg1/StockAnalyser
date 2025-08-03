@@ -739,7 +739,7 @@ class App:
                 state_text = f"SPY: {diff}"
             else:
                 if diff >= -10:
-                    label = "🐂 Bull Market"
+                    label = "🐂  Bull Market"
                 elif -20 < diff < -10:
                     label = "⚠️ Correction"
                 elif -30 < diff <= -20:

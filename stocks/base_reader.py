@@ -99,22 +99,53 @@ class MarketReaderBase:
         if stock=="BTC-USD":
             return int(min_val),int(max_val)
         return round(min_val,2),round(max_val,2)
+    
 
+    def get_price_or_percentage_change(self, year: int, month: int, stock: str, return_percentage: bool = False) -> list[float]:
+        start_date, end_date = self.get_start_and_end_date(year, month)
+        l_close = self.get_close_price(start_date, end_date, stock)
+        if not isinstance(l_close, list):
+            return l_close  # Return error message if get_close_price fails
+        result = []
+        previous_month_end = pd.Timestamp(start_date) - pd.DateOffset(days=1)
+        last_month_close = self.get_last_trading_day_close(previous_month_end.year, previous_month_end.month, stock)
+
+        for i, current_close in enumerate(l_close):
+            if i == 0:
+                prev_close = last_month_close
+            else:
+                prev_close = l_close[i - 1]
+
+            if prev_close:
+                delta = current_close - prev_close
+                change_value = round((delta / prev_close) * 100, 2) if return_percentage else round(delta, 2)
+            else:
+                change_value = 0.0
+
+            result.append(change_value)
+
+        return result
 
     def get_monthly_percentage_change(self, year:int, month:int, stock:str) -> float:
         start_date, end_date = self.get_start_and_end_date(year,month)
 
         # Download the data within the date range
         data = self.download_data(start_date, end_date,stock)
-
+        
         # Ensure there are valid trading days
-        if len(data) > 0:
-            first_open = data['Open'].iloc[0]
-            last_close = data['Close'].iloc[-1]
-          
+        if len(data) > 1:
+            first_open = data['Open'][stock].iloc[0]
+            last_close = data['Close'][stock].iloc[-1]
+
             # Calculate the percentage change from the first to the last trading day
             percentage_change = round(((last_close / first_open) - 1) * 100, 2)
+        
+        #Grab the first index of the list since we need to get the last month's closing price to calculate the percentage change.
+        elif len(data==1):
+            percentage_change = self.get_price_or_percentage_change(year,month,stock,return_percentage=True)[0]
+
         else:
+
             percentage_change = 0.0  # No trading days in the month
 
         return percentage_change

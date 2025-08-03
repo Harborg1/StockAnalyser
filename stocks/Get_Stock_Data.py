@@ -46,30 +46,7 @@ class stock_reader(MarketReaderBase):
         else:
             # Return the error message or handle it (e.g., log or raise an error)
             return data  # This will return the error message directly
-    def get_price_or_percentage_change(self, year: int, month: int, stock: str, return_percentage: bool = False) -> list[float]:
-        start_date, end_date = self.get_start_and_end_date(year, month)
-        l_close = self.get_close_price(start_date, end_date, stock)
-        if not isinstance(l_close, list):
-            return l_close  # Return error message if get_close_price fails
-        result = []
-        previous_month_end = pd.Timestamp(start_date) - pd.DateOffset(days=1)
-        last_month_close = self.get_last_trading_day_close(previous_month_end.year, previous_month_end.month, stock)
-
-        for i, current_close in enumerate(l_close):
-            if i == 0:
-                prev_close = last_month_close
-            else:
-                prev_close = l_close[i - 1]
-
-            if prev_close:
-                delta = current_close - prev_close
-                change_value = round((delta / prev_close) * 100, 2) if return_percentage else round(delta, 2)
-            else:
-                change_value = 0.0
-
-            result.append(change_value)
-
-        return result
+    
 
     # Function to generate non-weekend weeks with 5 elements each
     def get_non_weekend_weeks(self, year:int, month:int) -> list[list[int]]:
@@ -261,13 +238,13 @@ class stock_reader(MarketReaderBase):
         # Set limits and labels
         ax.set_xlim(0, 5)
         ax.set_ylim(-len(month_weeks), 0)
-        ax.axis('off')  # Turn off the axes
+        ax.axis('off')  # Turn off the axes¨
         ax.set_title(
-            f'{stock} Performance in {calendar.month_name[month]} {year}\n'
-            f'Price Range: ${price_range[0]} - ${price_range[1]}\n'
-            f'Overall Percentage Change: {float(monthly_percentage_change.iloc[0])}%',
-            fontsize=12
-        )
+        f'{stock} Performance in {calendar.month_name[month]} {year}\n'
+        f'Price Range: ${price_range[0]} - ${price_range[1]}\n'
+        f'Overall Percentage Change: {monthly_percentage_change}%',
+        fontsize=12
+    )
         # Function to be called when clicking on a day
         def on_click(event):
             if event.inaxes == ax:
