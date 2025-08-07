@@ -29,6 +29,7 @@ LOOKBACK = 10000
 STRATEGY = ['BB', 'MACD_hist', 'RSI', 'MFI']
 OPTIMAL_SHIFT = None
 
+
 def get_data(ticker=TICKER, lookback=LOOKBACK, interval=INTERVAL):
     df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD)
     df.rename(columns={'Date': 'Datetime'}, inplace=True)
@@ -49,10 +50,10 @@ def get_data(ticker=TICKER, lookback=LOOKBACK, interval=INTERVAL):
 def add_BB(df, devs=DEVS, bb_len=BB_LEN):
 
     # can change to ema (use MACD video/code for reference)
-    df['BB_SMA'] = df['Close'].rolling(bb_len).mean()
+    df['BB_SMA'] = df['Close'].shift(1).rolling(bb_len).mean()
 
     # get the standard deviation of the close prices for the period
-    df['BB_STD'] = df['Close'].rolling(bb_len).std()
+    df['BB_STD'] = df['Close'].shift(1).rolling(bb_len).std()
 
     df['Upper_Band'] = df['BB_SMA'] + (devs * df['BB_STD'])
     df['Lower_Band'] = df['BB_SMA'] - (devs * df['BB_STD'])
@@ -72,14 +73,14 @@ def add_BB(df, devs=DEVS, bb_len=BB_LEN):
 def add_RSI(df, length=RSI_LENGTH, overbought=RSI_OVERBOUGHT, oversold=RSI_OVERSOLD):
 
     price_change = df['Close'].diff()
-    
+
     # separate gains/losses
     gain = price_change.where(price_change > 0, 0)
     loss = -price_change.where(price_change < 0, 0)
 
     # average gain vs loss
-    avg_gain = gain.rolling(window=length).mean()
-    avg_loss = loss.rolling(window=length).mean()
+    avg_gain = gain.shift(1).rolling(window=length).mean()
+    avg_loss = loss.shift(1).rolling(window=length).mean()
 
     # calculate rsi
     rs = avg_gain / avg_loss
@@ -132,8 +133,8 @@ def add_MFI(df, length=MFI_LENGTH, overbought=MFI_OVERBOUGHT, oversold=MFI_OVERS
     df['Neg_Flow'] = np.where(df['Price_Change'] < 0, df['Raw_Money_Flow'], 0)
 
     # Step 4: Money Flow Ratio and MFI
-    pos_sum = df['Pos_Flow'].rolling(window=length).sum()
-    neg_sum = df['Neg_Flow'].rolling(window=length).sum()
+    pos_sum = df['Pos_Flow'].shift(1).rolling(window=length).sum()
+    neg_sum = df['Neg_Flow'].shift(1).rolling(window=length).sum()
     mfr = pos_sum / neg_sum
     df['MFI'] = 100 - (100 / (1 + mfr))
 
@@ -148,6 +149,7 @@ def add_MFI(df, length=MFI_LENGTH, overbought=MFI_OVERBOUGHT, oversold=MFI_OVERS
     plt.close()
 
     return df.dropna()
+
 
 def add_target(df, shift):
     df = df.copy()
@@ -166,7 +168,6 @@ def generate_regression_output(df, features=STRATEGY, target='Target', cutoff=CU
 
     model = sm.Logit(y, X).fit(disp=0)
     y_pred_prob = model.predict(X)
-
     df = df.loc[subset.index]
     df['Prediction'] = (y_pred_prob > cutoff).astype(int)
     return df, y, y_pred_prob
@@ -276,6 +277,8 @@ def backtest_strategy(df, shift, threshold=0.6, original_df=None):
     trade_log.to_csv("trades_with_dates.csv", index=True)
 
 
+
+
 def train_and_test_model(train_df, test_df, shift, cutoff=CUTOFF):
     # Add target to both
     train_df = add_target(train_df.copy(), shift)
@@ -338,39 +341,50 @@ def explore_shift_auc(train, val):
         return None
     
     return pd.DataFrame(results).sort_values(by='AUC', ascending=False)
-
 def evaluate_on_test(train_df: pd.DataFrame, val_df: pd.DataFrame,
                      test_df: pd.DataFrame, shift: int,
-                     features: list, cutoff=CUTOFF):
+                     features: list, cutoff=CUTOFF, model="xgb"):
     """
     Retrain on train+val using the chosen shift, then evaluate on test_df.
-    Returns:
-      - test_df with 'Prediction' column
-      - y_test (Series)
-      - y_pred_prob (array)
-      - final_model (fitted XGBClassifier)
+    Supports either 'xgb' or 'logit' models.
     """
+
 
     # Clean
     train_df = train_df.replace([np.inf, -np.inf], np.nan).dropna()
     val_df = val_df.replace([np.inf, -np.inf], np.nan).dropna()
     test_df = test_df.replace([np.inf, -np.inf], np.nan).dropna()
 
-    # combine train + validation
+    # Combine and prepare training data
     combined = pd.concat([train_df, val_df], ignore_index=True)
-    comb = add_target(combined.copy(), shift).dropna()
-    X_comb, y_comb = comb[features], comb['Target']
+    combined = add_target(combined.copy(), shift).dropna()
+    X_comb = combined[features]
+    y_comb = combined['Target']
 
-    final_model = XGBClassifier(eval_metric='logloss', random_state=42)
-    final_model.fit(X_comb, y_comb)
-
-    # prepare test
+    # Prepare test data
     test_t = add_target(test_df.copy(), shift).dropna()
-    X_test, y_test = test_t[features], test_t['Target']
-    y_pred_prob = final_model.predict_proba(X_test)[:,1]
+    X_test = test_t[features]
+    y_test = test_t['Target']
+
+    # Train and predict
+    if model == "xgb":
+        final_model = XGBClassifier(eval_metric='logloss', random_state=42)
+        final_model.fit(X_comb, y_comb)
+        y_pred_prob = final_model.predict_proba(X_test)[:, 1]
+
+    elif model == "logit":
+        X_comb_const = sm.add_constant(X_comb)
+        X_test_const = sm.add_constant(X_test)
+        final_model = sm.Logit(y_comb, X_comb_const).fit(disp=0)
+        y_pred_prob = final_model.predict(X_test_const)
+
+    else:
+        raise ValueError("model must be either 'xgb' or 'logit'")
+
     test_t['Prediction'] = (y_pred_prob > cutoff).astype(int)
 
     return test_t, y_test, y_pred_prob
+
 
 # Study dataset using provided train/val split to select shift
 def study_dataset(train, val, full_df):
@@ -399,7 +413,7 @@ def study_dataset(train, val, full_df):
 
     # Final model trained on full data
     df_final = add_target(full_df.copy(), shift=OPTIMAL_SHIFT)
-    df_final, y_final, y_pred_prob = generate_xgb_output(df_final)
+    df_final, y_final, y_pred_prob = generate_regression_output(df_final)
 
     plot_prediction_distribution(y_pred_prob)
     add_roc_plot(y_final, y_pred_prob, title=f'ROC Curve (SHIFT = {OPTIMAL_SHIFT})')
@@ -434,10 +448,12 @@ if __name__ == '__main__':
 
     # Find best shift using train/val and train final model on full df
     df_final, results_df = study_dataset(train, val, df)
-    
+
     # Evaluate optimal model on test set
     #test_df, y_test, y_prob = train_and_test_model(train, test, shift=OPTIMAL_SHIFT)
-    test_df, y_test, y_prob = evaluate_on_test(train, val, test, shift=OPTIMAL_SHIFT, features=STRATEGY,cutoff=CUTOFF)
+    test_df, y_test, y_prob = evaluate_on_test(train, val, test, shift=OPTIMAL_SHIFT, features=STRATEGY,cutoff=CUTOFF,
+                                               model="xgb")
+    
     plot_prediction_distribution(y_prob)
     add_roc_plot(y_test, y_prob, title=f'ROC Curve (Test Set, SHIFT={OPTIMAL_SHIFT})')
     add_confusion_matrix(test_df)
