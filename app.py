@@ -357,7 +357,7 @@ class App:
             width=40
         )
         back_button.grid(row=1, column=0, sticky="w", padx=5, pady=5)
-
+        
         stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO", "CASH"]
         usd_dkk: float = float(self.stock_reader_instance.get_last_trading_day_close(
             datetime.now().year,

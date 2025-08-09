@@ -26,7 +26,7 @@ TRAIN_SIZE = .7
 
 LOOKBACK = 10000
 
-STRATEGY = ['Volume_change', 'Close_change', 'High_change', 'Low_change', 'Open_change', 'BB', 'MACD_hist', 'RSI', 'MFI']
+STRATEGY = ['BB', 'MACD_hist', 'RSI', 'MFI']
 OPTIMAL_SHIFT = None
 
 def get_data(ticker=TICKER, lookback=LOOKBACK, interval=INTERVAL):
@@ -34,8 +34,9 @@ def get_data(ticker=TICKER, lookback=LOOKBACK, interval=INTERVAL):
     df.columns = df.columns.get_level_values(0)
     df = df.reset_index()
 
+
     for c in df.select_dtypes(include=[np.number]).columns:
-        df[f'{c}_change'] = df[c].pct_change() * 100
+        df[f'{c}_change'] = df[c].pct_change().shift(1) * 100
 
     # only return the subset of data you are interested in
     subset = df.iloc[-lookback:, :]
@@ -48,10 +49,10 @@ def get_data(ticker=TICKER, lookback=LOOKBACK, interval=INTERVAL):
 def add_BB(df, devs=DEVS, bb_len=BB_LEN):
 
     # can change to ema (use MACD video/code for reference)
-    df['BB_SMA'] = df['Close'].rolling(bb_len).mean()
+    df['BB_SMA'] = df['Close'].shift(1).rolling(bb_len).mean()
 
     # get the standard deviation of the close prices for the period
-    df['BB_STD'] = df['Close'].rolling(bb_len).std()
+    df['BB_STD'] = df['Close'].shift(1).rolling(bb_len).std()
 
     df['Upper_Band'] = df['BB_SMA'] + (devs * df['BB_STD'])
     df['Lower_Band'] = df['BB_SMA'] - (devs * df['BB_STD'])
@@ -76,8 +77,8 @@ def add_RSI(df, length=RSI_LENGTH, overbought=RSI_OVERBOUGHT, oversold=RSI_OVERS
     gain = price_change.where(price_change > 0, 0)
     loss = -price_change.where(price_change < 0, 0)
     # average gain vs loss
-    avg_gain = gain.rolling(window=length).mean()
-    avg_loss = loss.rolling(window=length).mean()
+    avg_gain = gain.shift(1).rolling(window=length).mean()
+    avg_loss = loss.shift(1).rolling(window=length).mean()
 
     # calculate rsi
     rs = avg_gain / avg_loss
@@ -128,7 +129,7 @@ def add_MFI(df, length=MFI_LENGTH, overbought=MFI_OVERBOUGHT, oversold=MFI_OVERS
 
     df['Pos_Flow'] = np.where(df['Price_Change'] > 0, df['Raw_Money_Flow'], 0)
     df['Neg_Flow'] = np.where(df['Price_Change'] < 0, df['Raw_Money_Flow'], 0)
-
+    
     # Step 4: Money Flow Ratio and MFI
     pos_sum = df['Pos_Flow'].rolling(window=length).sum()
     neg_sum = df['Neg_Flow'].rolling(window=length).sum()
@@ -146,12 +147,13 @@ def add_MFI(df, length=MFI_LENGTH, overbought=MFI_OVERBOUGHT, oversold=MFI_OVERS
 
     return df.dropna()
 
+
 def add_target(df, shift):
     df = df.copy()
     df[f'Close + {shift}'] = df['Close'].shift(-shift)
-    df['Target'] = (df[f'Close + {shift}'] > df['Close']).astype(int)
+    threshold = 0.003  # e.g., 0.3% change
+    df['Target'] = ((df[f'Close + {shift}'] - df['Close']) / df['Close'] > threshold).astype(int)
     return df.dropna().reset_index(drop=False)
-
 
 def generate_regression_output(df, features=STRATEGY, target='Target', cutoff=CUTOFF):
     subset = df[features + [target]].replace([np.inf, -np.inf], np.nan).dropna()
@@ -175,7 +177,7 @@ def generate_xgb_output(df, features=STRATEGY, target='Target', cutoff=CUTOFF):
 
     if len(subset) < 10:
         raise ValueError("Too few rows after cleaning.")
-
+    
     X = subset[features]
     y = subset[target]
 
@@ -294,6 +296,113 @@ def backtest_strategy(df, shift, threshold=0.6, original_df=None):
         print(f"Buy and Hold Return: {buy_hold_return:.2f} points")
 
     trade_log.to_csv("trades_with_dates.csv", index=True)
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+from xgboost import XGBClassifier
+import pandas as pd
+
+def backtest_strategy_rolling(
+    df,
+    shift=5,
+    model_type='logit',
+    features=None,
+    cutoff=0.999999,
+    min_train_size=200,
+    transaction_cost=0.002,
+    retrain_every=5,
+    verbose=True
+):
+    """
+    Faster, realistic rolling backtest that:
+    - Trains every `retrain_every` steps
+    - Predicts one day ahead
+    - Simulates forward trade (t to t+shift)
+    - Applies transaction cost
+
+    Returns:
+        DataFrame with trade log
+    """
+    assert features is not None, "Must provide a list of features."
+
+    trades = []
+    df = df.copy().reset_index(drop=True)
+    df = df.replace([float('inf'), float('-inf')], pd.NA).dropna()
+    df = add_target(df, shift=shift).dropna().reset_index(drop=True)
+
+    model = None
+
+    for t in tqdm(range(min_train_size, len(df) - shift), desc="Rolling Backtest"):
+        # Slice train/test
+        train_data = df.iloc[:t]
+        # Features/labels
+        X_train = train_data[features]
+        y_train = train_data['Target']
+        X_test = df.loc[[t], features]  # needs to be 2D for prediction
+        # Retrain model every few steps
+        retrain = ((t - min_train_size) % retrain_every == 0) or (model is None)
+        try:
+            if model_type == 'logit':
+                if retrain:
+                    try:
+                        X_train_const = sm.add_constant(X_train, has_constant='add')
+                        model = sm.Logit(y_train, X_train_const).fit(disp=0)
+                        model_columns = X_train_const.columns
+                    except Exception as e:
+                        if verbose:
+                            print(f"Logit training failed at t={t}")
+                            import traceback
+                            traceback.print_exc()
+                        continue
+                try:
+                    X_test_const = sm.add_constant(X_test, has_constant='add')
+                    X_test_const = X_test_const.reindex(columns=model_columns, fill_value=0)
+                    prob = model.predict(X_test_const).iloc[0]
+                except Exception as e:
+                    if verbose:
+                        print(f"Logit prediction failed at t={t}")
+                        import traceback
+                        traceback.print_exc()
+                    continue
+
+            elif model_type == 'xgb':
+                if retrain:
+                    model = XGBClassifier(
+                        eval_metric='logloss',
+                        random_state=42
+                    )
+                    model.fit(X_train, y_train)
+                prob = model.predict_proba(X_test)[0, 1]
+
+            else:
+                raise ValueError("Invalid model_type")
+
+        except Exception as e:
+            if verbose:
+                print(f"Model error at t={t}: {e}")
+            continue
+
+        # Optional: print a few early probabilities
+        if verbose and t < min_train_size + 10:
+            print(f"t={t}, prob={prob:.4f}")
+
+        if prob > cutoff:
+            entry_price = df.at[t, 'Close']
+            exit_price = df.at[t + shift, 'Close']
+            pnl = exit_price - entry_price - (entry_price * transaction_cost)
+
+            trades.append({
+                'Date': df.at[t, 'Date'],
+                'Entry_Price': entry_price,
+                'Exit_Price': exit_price,
+                'PnL': pnl,
+                'Prob': prob
+            })
+
+    plt.close('all')  # clear figures to avoid memory warnings
+
+    return pd.DataFrame(trades)
+
 
 def explore_shift_auc(train, val):
     print(f"Exploring AUC over SHIFT range for {TICKER} on {INTERVAL} interval\n")
@@ -354,34 +463,96 @@ def study_dataset(train, val, full_df):
     print(f"\nOptimal SHIFT based on validation AUC: {OPTIMAL_SHIFT}")
 
     # Final model trained on full data
+
     df_final = add_target(full_df.copy(), shift=OPTIMAL_SHIFT)
-    df_final, y_final, y_pred_prob = generate_xgb_output(df_final)
+    # df_final, y_final, y_pred_prob = generate_regression_output(df_final)
 
-    plot_prediction_distribution(y_pred_prob)
-    add_roc_plot(y_final, y_pred_prob, title=f'ROC Curve (SHIFT = {OPTIMAL_SHIFT})')
-    add_confusion_matrix(df_final)
-
+    # plot_prediction_distribution(y_pred_prob)
+    # add_roc_plot(y_final, y_pred_prob, title=f'ROC Curve (SHIFT = {OPTIMAL_SHIFT})')
+    # add_confusion_matrix(df_final)
     return df_final, results_df
+
+
+def evaluate_on_test(train_df: pd.DataFrame, val_df: pd.DataFrame,
+                     test_df: pd.DataFrame, shift: int,
+                     features: list, cutoff=CUTOFF, model="xgb"):
+    """
+    Retrain on train+val using the chosen shift, then evaluate on test_df.
+    Supports either 'xgb' or 'logit' models.
+    """
+
+    # Clean
+    train_df = train_df.replace([np.inf, -np.inf], np.nan).dropna()
+    val_df = val_df.replace([np.inf, -np.inf], np.nan).dropna()
+    test_df = test_df.replace([np.inf, -np.inf], np.nan).dropna()
+
+    # Combine and prepare training data
+    combined = pd.concat([train_df, val_df], ignore_index=True)
+    combined = add_target(combined.copy(), shift).dropna()
+    X_comb = combined[features]
+    y_comb = combined['Target']
+
+    # Prepare test data
+    test_t = add_target(test_df.copy(), shift).dropna()
+    X_test = test_t[features]
+    y_test = test_t['Target']
+
+    # Train and predict
+    if model == "xgb":
+        final_model = XGBClassifier(eval_metric='logloss', random_state=42)
+        final_model.fit(X_comb, y_comb)
+        y_pred_prob = final_model.predict_proba(X_test)[:, 1]
+
+    elif model == "logit":
+        X_comb_const = sm.add_constant(X_comb)
+        X_test_const = sm.add_constant(X_test)
+        final_model = sm.Logit(y_comb, X_comb_const).fit(disp=0)
+        y_pred_prob = final_model.predict(X_test_const)
+
+    else:
+        raise ValueError("model must be either 'xgb' or 'logit'")
+
+    test_t['Prediction'] = (y_pred_prob > cutoff).astype(int)
+
+    return test_t, y_test, y_pred_prob
+
+
+
+def add_indicators(df):
+    df = add_MACD(df)
+    df= add_MFI(df)
+    df = add_BB(df)
+    df=add_RSI(df)
+
+    return df
 
 # Main execution
 if __name__ == '__main__':
     df = get_data()
-    df = add_MACD(df)
-    df = add_MFI(df)
-    df = add_BB(df)
-    df = add_RSI(df)
-
     # Split once
     train, val, test = train_val_test_split(df)
+    train=add_indicators(train)
+    val=add_indicators(val)
+    test=add_indicators(test)
 
     # Determine optimal shift using train/val only
+    df = add_indicators(df)
     df_final, results_df = study_dataset(train, val, df)
-
     # Train model with optimal shift on train, evaluate on test
-    test_df, y_test, y_prob = train_and_test_model(train, test, shift=OPTIMAL_SHIFT)
+    test_df, y_test, y_prob = evaluate_on_test(train, val, test, shift=OPTIMAL_SHIFT, features=STRATEGY,cutoff=CUTOFF,
+                                               model="logit")
     plot_prediction_distribution(y_prob)
     add_roc_plot(y_test, y_prob, title=f'ROC Curve (Test Set, SHIFT={OPTIMAL_SHIFT})')
     add_confusion_matrix(test_df)
 
     # Backtest strategy
-    backtest_strategy(test_df, shift=OPTIMAL_SHIFT, threshold=0.6, original_df=test)
+    # backtest_strategy(test_df, shift=OPTIMAL_SHIFT, threshold=CUTOFF, original_df=test)
+
+    rolling_trades = backtest_strategy_rolling(df,shift=OPTIMAL_SHIFT,model_type='logit', features=STRATEGY,
+                                               cutoff=0.5,transaction_cost=0.002
+)
+    
+print(rolling_trades.head())
+print("Total Trades:", len(rolling_trades))
+print("Total Return:", rolling_trades['PnL'].sum())
+print("Win Rate:", (rolling_trades['PnL'] > 0).mean())
