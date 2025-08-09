@@ -8,6 +8,7 @@ from openai import OpenAI
 from stocks.base_reader import MarketReaderBase
 from auxillary.pre_market import get_pre_market_price_ticker
 import yfinance as yf
+import pandas as pd
 
 load_dotenv("passcodes.env")
 
@@ -27,8 +28,72 @@ class Strategy(MarketReaderBase):
     def __init__(self, stock):
         super().__init__()
         self.stock = stock
-        self.ma20 = self.get_moving_average(self.start_date, self.end_date, stock, True)
-        self.ma50 = self.get_moving_average(self.start_date, self.end_date, stock, False)
+    
+
+    
+    def get_indicators(self,stock, pre_market=None):
+            """
+            Get SMA20, SMA50, SMA200, ATR(14), ATR%, RSI(14), MACD, Avg Vol, RVOL, Gap %.
+            """
+            df = yf.download(stock, period="1y", interval="1d", progress=False, auto_adjust=False).dropna()
+            if df.empty:
+                return {}
+
+            close = df["Close"][stock] if isinstance(df.columns, pd.MultiIndex) else df["Close"]
+
+            # SMA
+            sma20 = close.rolling(20).mean().iloc[-1] if len(close) >= 20 else None
+            sma50 = close.rolling(50).mean().iloc[-1] if len(close) >= 50 else None
+            sma200 = close.rolling(200).mean().iloc[-1] if len(close) >= 200 else None
+
+            # ATR(14)
+            high = df["High"][stock] if isinstance(df.columns, pd.MultiIndex) else df["High"]
+            low = df["Low"][stock] if isinstance(df.columns, pd.MultiIndex) else df["Low"]
+            prev_close = close.shift(1)
+            tr = pd.concat([
+                high - low,
+                (high - prev_close).abs(),
+                (low - prev_close).abs()
+            ], axis=1).max(axis=1)
+            atr14 = tr.rolling(14).mean().iloc[-1]
+            atr_pct = (atr14 / close.iloc[-1] * 100) if atr14 else None
+
+            # RSI(14)
+            delta = close.diff()
+            gain = delta.where(delta > 0, 0.0).rolling(14).mean()
+            loss = -delta.where(delta < 0, 0.0).rolling(14).mean()
+            rs = gain / loss
+            rsi14 = 100 - (100 / (1 + rs.iloc[-1])) if loss.iloc[-1] != 0 else 100
+
+            # MACD (12,26,9)
+            ema12 = close.ewm(span=12, adjust=False).mean()
+            ema26 = close.ewm(span=26, adjust=False).mean()
+            macd_line = ema12 - ema26
+            signal_line = macd_line.ewm(span=9, adjust=False).mean()
+            macd_hist = macd_line - signal_line
+
+            # Volume metrics
+            vol = df["Volume"][stock] if isinstance(df.columns, pd.MultiIndex) else df["Volume"]
+            avg_vol20 = vol.tail(20).mean()
+            last_vol = vol.iloc[-1]
+            rvol = last_vol / avg_vol20 if pd.notna(avg_vol20) and avg_vol20 != 0 else None
+
+            def r(v): return float(round(v, 2))
+
+            return {
+                "sma20": r(sma20),
+                "sma50": r(sma50),
+                "sma200": r(sma200),
+                "atr14": r(atr14),
+                "atr_pct": r(atr_pct),
+                "rsi14": r(rsi14),
+                "macd_line": r(macd_line.iloc[-1]),
+                "signal_line": r(signal_line.iloc[-1]),
+                "macd_hist": r(macd_hist.iloc[-1]),
+                "avg_vol20": r(avg_vol20),
+                "rvol": r(rvol),
+            }
+
 
     def download_data_stock(self, start_date, end_date, stock):
         ticker = yf.download(stock, start=start_date, end=end_date)
@@ -44,7 +109,7 @@ class Strategy(MarketReaderBase):
             for date, row in last_5.iterrows()
         ]
 
-def ask_openai_for_strategy(client, stock, closes, ma20, ma50, pre_market):
+def ask_openai_for_strategy(client, stock, closes, indicators, pre_market):
     messages = [
         {
             "role": "system",
@@ -59,10 +124,18 @@ def ask_openai_for_strategy(client, stock, closes, ma20, ma50, pre_market):
 Analyze the stock data for {stock} and recommend a trading strategy (buy, hold, or sell) for today. Assume I am trading at the market open and want to optimize for risk-reward.
 
 **Data:**
-- Last 5 days OHLC: {closes}
-- 20-day moving average: {ma20}
-- 50-day moving average: {ma50}
+- Last 5 days Open, High, Low, Close: {closes}
 - Pre-market price: {pre_market}
+- 20-day moving average: {indicators["sma20"]}
+- 50-day moving average: {indicators["sma50"]}
+- 200-day moving average: {indicators["sma200"]}
+- Average True Range the past 14 days: {indicators["atr14"]}
+- RSI the past 14 days: {indicators["rsi14"]}
+- MACD line: {indicators["macd_line"]}
+- Signal line: {indicators["signal_line"]}
+- MACD history: {indicators["macd_hist"]}
+- Average volume the past 20 days: {indicators["avg_vol20"]}
+- Relative volume the latest close: {indicators["rvol"]}
 
 **Requirements:**
 1. Recommend an action: **buy**, **hold**, or **sell**.
@@ -97,8 +170,9 @@ if __name__ == "__main__":
     s = Strategy(stock)
     closes = s.download_data_stock(s.start_date, s.end_date, stock)
     pre_market = get_pre_market_price_ticker(stock)
-    strategy = ask_openai_for_strategy(client, stock, closes, s.ma20, s.ma50, pre_market)
-
+    indicators = s.get_indicators(stock,pre_market=pre_market)
+    strategy = ask_openai_for_strategy(client, stock, closes, indicators, pre_market)
+    
     body = f"""📈 AI-Generated Trading Strategy for {stock}\n\n{strategy}"""
     send_email(f"📊 Daily Strategy for {stock}", body, sender_email, receiver_email, password)
     print("✅ Strategy email sent.")
