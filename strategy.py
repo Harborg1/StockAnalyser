@@ -31,7 +31,7 @@ class Strategy(MarketReaderBase):
     
 
     
-    def get_indicators(self,stock, pre_market=None):
+    def get_indicators(self,stock):
             """
             Get SMA20, SMA50, SMA200, ATR(14), ATR%, RSI(14), MACD, Avg Vol, RVOL, Gap %.
             """
@@ -78,20 +78,20 @@ class Strategy(MarketReaderBase):
             last_vol = vol.iloc[-1]
             rvol = last_vol / avg_vol20 if pd.notna(avg_vol20) and avg_vol20 != 0 else None
 
-            def r(v): return float(round(v, 2))
+            def to_float_2(v): return float(round(v, 2))
 
             return {
-                "sma20": r(sma20),
-                "sma50": r(sma50),
-                "sma200": r(sma200),
-                "atr14": r(atr14),
-                "atr_pct": r(atr_pct),
-                "rsi14": r(rsi14),
-                "macd_line": r(macd_line.iloc[-1]),
-                "signal_line": r(signal_line.iloc[-1]),
-                "macd_hist": r(macd_hist.iloc[-1]),
-                "avg_vol20": r(avg_vol20),
-                "rvol": r(rvol),
+                "sma20": to_float_2(sma20),
+                "sma50": to_float_2(sma50),
+                "sma200": to_float_2(sma200),
+                "atr14": to_float_2(atr14),
+                "atr_pct": to_float_2(atr_pct),
+                "rsi14": to_float_2(rsi14),
+                "macd_line": to_float_2(macd_line.iloc[-1]),
+                "signal_line": to_float_2(signal_line.iloc[-1]),
+                "macd_hist": to_float_2(macd_hist.iloc[-1]),
+                "avg_vol20": to_float_2(avg_vol20),
+                "rvol": to_float_2(rvol),
             }
 
 
@@ -130,6 +130,7 @@ Analyze the stock data for {stock} and recommend a trading strategy (buy, hold, 
 - 50-day moving average: {indicators["sma50"]}
 - 200-day moving average: {indicators["sma200"]}
 - Average True Range the past 14 days: {indicators["atr14"]}
+- Average True Range Percentage: {indicators["atr_pct"]}
 - RSI the past 14 days: {indicators["rsi14"]}
 - MACD line: {indicators["macd_line"]}
 - Signal line: {indicators["signal_line"]}
@@ -172,7 +173,7 @@ if __name__ == "__main__":
     pre_market = get_pre_market_price_ticker(stock)
     indicators = s.get_indicators(stock,pre_market=pre_market)
     strategy = ask_openai_for_strategy(client, stock, closes, indicators, pre_market)
-    
+
     body = f"""📈 AI-Generated Trading Strategy for {stock}\n\n{strategy}"""
     send_email(f"📊 Daily Strategy for {stock}", body, sender_email, receiver_email, password)
     print("✅ Strategy email sent.")
