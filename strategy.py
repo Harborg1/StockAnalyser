@@ -30,7 +30,6 @@ class Strategy(MarketReaderBase):
         self.stock = stock
     
 
-    
     def get_indicators(self,stock):
             """
             Get SMA20, SMA50, SMA200, ATR(14), ATR%, RSI(14), MACD, Avg Vol, RVOL, Gap %.
@@ -171,7 +170,7 @@ if __name__ == "__main__":
     s = Strategy(stock)
     closes = s.download_data_stock(s.start_date, s.end_date, stock)
     pre_market = get_pre_market_price_ticker(stock)
-    indicators = s.get_indicators(stock,pre_market=pre_market)
+    indicators = s.get_indicators(stock)
     strategy = ask_openai_for_strategy(client, stock, closes, indicators, pre_market)
 
     body = f"""📈 AI-Generated Trading Strategy for {stock}\n\n{strategy}"""
