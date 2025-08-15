@@ -39,7 +39,7 @@ class App:
             'button_hover': '#2980b9', # Darker blue for hover
             'button_text': 'white'
         }
-        
+
         # Configure root window
         self.root = root
         self.root.title("Market Metrics Explorer")
@@ -238,7 +238,7 @@ class App:
             self.main_frame, "←", self.populate_main_screen, width=40
         )
         back_button.grid(row=0, column=0, sticky="w", padx=5, pady=5)
-    
+
         # Title
         title_label = ctk.CTkLabel(
             self.main_frame,
@@ -255,12 +255,12 @@ class App:
             datetime.now().year, datetime.now().month, stock
         )
         ma20 = self.crypto_reader_instance.get_moving_average(
-            self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=True
+            self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, 20
         )
         ma50 = self.crypto_reader_instance.get_moving_average(
-            self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, ma20=False
+            self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, 50
         )
-
+        
         # Labels
         ctk.CTkLabel(self.main_frame, text=f"BTC Price: ${current_price}", font=ctk.CTkFont(size=14),
                     text_color=self.colors['secondary'], fg_color=self.colors['background']

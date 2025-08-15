@@ -28,7 +28,9 @@ class Strategy(MarketReaderBase):
     def __init__(self, stock):
         super().__init__()
         self.stock = stock
-    
+        self.sma20 = self.get_moving_average(self.start_date,self.end_date,self.stock,20)
+        self.sma50 = self.get_moving_average(self.start_date,self.end_date,self.stock,50)
+        self.sma200 = self.get_moving_average(self.start_date,self.end_date,self.stock,200)
 
     def get_indicators(self,stock):
             """
@@ -39,11 +41,6 @@ class Strategy(MarketReaderBase):
                 return {}
 
             close = df["Close"][stock] if isinstance(df.columns, pd.MultiIndex) else df["Close"]
-
-            # SMA
-            sma20 = close.rolling(20).mean().iloc[-1] if len(close) >= 20 else None
-            sma50 = close.rolling(50).mean().iloc[-1] if len(close) >= 50 else None
-            sma200 = close.rolling(200).mean().iloc[-1] if len(close) >= 200 else None
 
             # ATR(14)
             high = df["High"][stock] if isinstance(df.columns, pd.MultiIndex) else df["High"]
@@ -80,9 +77,9 @@ class Strategy(MarketReaderBase):
             def to_float_2(v): return float(round(v, 2))
 
             return {
-                "sma20": to_float_2(sma20),
-                "sma50": to_float_2(sma50),
-                "sma200": to_float_2(sma200),
+                "sma20": self.sma20,
+                "sma50": self.sma50,
+                "sma200": self.sma200,
                 "atr14": to_float_2(atr14),
                 "atr_pct": to_float_2(atr_pct),
                 "rsi14": to_float_2(rsi14),
@@ -92,8 +89,8 @@ class Strategy(MarketReaderBase):
                 "avg_vol20": to_float_2(avg_vol20),
                 "rvol": to_float_2(rvol),
             }
-
-
+    
+    
     def download_data_stock(self, start_date, end_date, stock):
         ticker = yf.download(stock, start=start_date, end=end_date)
         last_5 = ticker.dropna().tail(5)

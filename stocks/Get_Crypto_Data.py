@@ -62,8 +62,8 @@ class crypto_reader(MarketReaderBase):
         ax.set_title(
             f'{stock} Performance in {calendar.month_name[month]} {year}\n'
             f'Price Range: ${price_range[0]} - ${price_range[1]}\n'
-            f'20 day moving average: {self.get_moving_average(self.start_date,self.end_date,stock,True)}\n'
-            f'50 day moving average: {self.get_moving_average(self.start_date,self.end_date,stock,False)}',
+            f'20 day moving average: {self.get_moving_average(self.start_date,self.end_date,stock,20)}\n'
+            f'50 day moving average: {self.get_moving_average(self.start_date,self.end_date,stock,50)}',
             fontsize=11
         )
         if download:

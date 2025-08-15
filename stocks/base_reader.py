@@ -21,13 +21,13 @@ class MarketReaderBase:
         self.monthly_date[key] = (start_date, end_date)
         return start_date, end_date
     
-    def get_moving_average(self, s:int , e:int, stock:str, ma20:bool):
+
+    def get_moving_average(self, s:int , e:int, stock:str, window: int):
         # Download the data using the existing method
         data = self.download_data(s, e, stock)
         if data.empty:
             return f"No data found for {stock} between {s} and {e}."
         # Choose the window based on the ma20 flag
-        window = 20 if ma20 else 50
 
         # Compute the rolling mean (moving average) of the 'Close' column
         moving_avg_series = data['Close'].rolling(window=window).mean().round(2).iloc[-1].item()
