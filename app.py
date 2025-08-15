@@ -260,7 +260,7 @@ class App:
         ma50 = self.crypto_reader_instance.get_moving_average(
             self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, 50
         )
-        
+
         # Labels
         ctk.CTkLabel(self.main_frame, text=f"BTC Price: ${current_price}", font=ctk.CTkFont(size=14),
                     text_color=self.colors['secondary'], fg_color=self.colors['background']
