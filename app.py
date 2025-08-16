@@ -367,7 +367,7 @@ class App:
         # Portfolio data
         portfolio: Dict[str, Dict[str, float]] = {
             stocks[0]: {
-                "shares": 50,
+                "shares":62,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -375,7 +375,7 @@ class App:
                 ))
             },
             stocks[1]: {
-                "shares": 133,
+                "shares": 132,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -384,7 +384,7 @@ class App:
                 
             },
             stocks[2]: {
-                "shares": 300,
+                "shares": 600,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -402,14 +402,14 @@ class App:
 
              stocks[4]: {
                 "shares": 1,
-                "price": 46500/usd_dkk
+                "price": 980/usd_dkk
             }
             }
         
         # Prepare data for the pie chart
         labels: List[str] = ["TSLA", "NVDA", "CLSK", "ETF", "CASH"]
-
         sizes: List[float] = [stock["shares"] * stock["price"] for stock in portfolio.values()]
+        print(sizes)
         # Define a larger color palette
         colors = [
             '#FF5733', # red-orange
@@ -571,13 +571,13 @@ class App:
             self.stock_reader_instance.start_date,
             self.stock_reader_instance.end_date,
             stock,
-            ma20=True
+            20
         )
         ma50 = self.stock_reader_instance.get_moving_average(
             self.stock_reader_instance.start_date,
             self.stock_reader_instance.end_date,
             stock,
-            ma20=False
+            50
         )
         links: List[str] = self.get_news_links_for_month(year, month) if stock == "CLSK" else []
 
