@@ -6,6 +6,8 @@ import statsmodels.api as sm
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc, roc_auc_score
 from xgboost import XGBClassifier
+from sklearn.linear_model import LogisticRegression
+
 TICKER = 'SPY'
 INTERVAL = '1h'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
@@ -21,10 +23,12 @@ RSI_OVERBOUGHT = 70
 RSI_OVERSOLD = 30
 BB_LEN = 20
 DEVS = 2
-CUTOFF = .5
+CUTOFF = 0.5
 TRAIN_SIZE = .7
 
 LOOKBACK = 10000
+
+MODEL =  "logit"
 
 STRATEGY = ['BB', 'MACD_hist', 'RSI', 'MFI']
 OPTIMAL_SHIFT = None
@@ -95,27 +99,42 @@ def add_RSI(df, length=RSI_LENGTH, overbought=RSI_OVERBOUGHT, oversold=RSI_OVERS
     plt.title('Relative Strength Index')
 
     return df.dropna()
+def add_MACD(
+    df: pd.DataFrame,
+    fast: int = MACD_FAST,
+    slow: int = MACD_SLOW,
+    span: int = MACD_SPAN,
+    plot: bool = False
+) -> pd.DataFrame:
+    """
+    Compute MACD features using ONLY information available up to t-1
+    to avoid lookahead. Optionally plot the histogram.
+    """
 
-def add_MACD(df, fast=MACD_FAST, slow=MACD_SLOW, span=MACD_SPAN):
+    out = df.copy()
 
-    df[f'{fast}_ema'] = df['Close'].ewm(span=fast).mean()
-    df[f'{slow}_ema'] = df['Close'].ewm(span=slow).mean()
+    # Use prior close so features at time t are based on data up to t-1
+    c = out['Close'].shift(1)
 
-    # macd line is the difference betweent he fast and slow
-    df[f'MACD'] = df[f'{fast}_ema'] - df[f'{slow}_ema']
+    # Classic TA behavior with adjust=False
+    out[f'{fast}_ema'] = c.ewm(span=fast, adjust=False).mean()
+    out[f'{slow}_ema'] = c.ewm(span=slow, adjust=False).mean()
 
-    # macd signal is a 9-period moving average of this line
-    df['Signal'] = df['MACD'].ewm(span=span).mean()
+    out['MACD'] = out[f'{fast}_ema'] - out[f'{slow}_ema']
+    out['Signal'] = out['MACD'].ewm(span=span, adjust=False).mean()
+    out['MACD_hist'] = out['MACD'] - out['Signal']
 
-    # MACD histogram is almost always what is used in TA
-    df['MACD_hist'] = df['MACD'] - df['Signal']
+    # Drop rows that are not fully formed yet
+    out = out.dropna(subset=[f'{fast}_ema', f'{slow}_ema', 'MACD', 'Signal', 'MACD_hist'])
 
-    # plot the histogram
-    plt.figure()
-    plt.bar(x=range(len(df)), height=df['MACD_hist'])
-    plt.title(f'{MACD_FAST} - {MACD_SLOW} - {MACD_SPAN} MACD Histogram')
+    if plot:
+        plt.figure()
+        plt.bar(x=range(len(out)), height=out['MACD_hist'])
+        plt.title(f'{fast}-{slow}-{span} MACD Histogram')
+        plt.tight_layout()
+        plt.close()
 
-    return df
+    return out
 
 def add_MFI(df, length=MFI_LENGTH, overbought=MFI_OVERBOUGHT, oversold=MFI_OVERSOLD):
     df = df.copy()
@@ -154,58 +173,9 @@ def add_MFI(df, length=MFI_LENGTH, overbought=MFI_OVERBOUGHT, oversold=MFI_OVERS
 def add_target(df, shift):
     df = df.copy()
     df[f'Close + {shift}'] = df['Close'].shift(-shift)
-    df['Target'] = (df[f'Close + {shift}'] > df['Close']).astype(int)
+    # require at least +0.5% gain over shift
+    df['Target'] = ((df[f'Close + {shift}'] - df['Close']) / df['Close'] > 0.005).astype(int)
     return df.dropna().reset_index(drop=True)
-
-def generate_regression_output(df, features=STRATEGY, target='Target', cutoff=CUTOFF):
-    subset = df[features + [target]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    if len(subset) < 10:
-        raise ValueError("Too few rows after cleaning.")
-
-    X = sm.add_constant(subset[features])
-    y = subset[target]
-
-    model = sm.Logit(y, X).fit(disp=0)
-    y_pred_prob = model.predict(X)
-    df = df.loc[subset.index]
-    df['Prediction'] = (y_pred_prob > cutoff).astype(int)
-    return df, y, y_pred_prob
-
-
-def generate_xgb_output(df, features=STRATEGY, target='Target', cutoff=CUTOFF):
-    subset = df[features + [target]].replace([np.inf, -np.inf], np.nan).dropna()
-
-    if len(subset) < 10:
-        raise ValueError("Too few rows after cleaning.")
-
-    X = subset[features]
-    y = subset[target]
-
-    model = XGBClassifier(
-        eval_metric='logloss',
-        random_state=42,
-        n_estimators=100,
-        max_depth=3,
-        learning_rate=0.1
-    )
-    model.fit(X, y)
-    y_pred_prob = model.predict_proba(X)[:, 1]
-
-    df = df.loc[subset.index]
-    df['Prediction'] = (y_pred_prob > cutoff).astype(int)
-    return df, y, y_pred_prob
-
-def add_confusion_matrix(df):
-    cm = confusion_matrix(df['Target'], df['Prediction'])
-    labels = ['Down (0)', 'Up (1)']
-    cm_df = pd.DataFrame(cm, index=labels, columns=labels)
-    plt.figure()
-    sns.heatmap(cm_df, annot=True, cmap='Blues', fmt='.0f')
-    plt.title("Confusion Matrix")
-    plt.xlabel("Predicted")
-    plt.ylabel("Actual")
-    #plt.show()
 
 def add_roc_plot(y_true, y_scores, title="ROC Curve"):
     fpr, tpr, _ = roc_curve(y_true, y_scores)
@@ -244,103 +214,195 @@ def train_val_test_split(df, train_size=0.6, val_size=0.2):
 
     return train.reset_index(drop=True), val.reset_index(drop=True), test.reset_index(drop=True)
 
-def backtest_strategy(df, shift, threshold=0.6, original_df=None):
-    df = df.copy()
-    df = df.dropna(subset=['Prediction', 'Close'])
-    df['Buy_Signal'] = df['Prediction'] > threshold
-    df['Entry_Price'] = df['Close']
-    df['Exit_Price'] = df['Close'].shift(-shift)
-    df['PnL'] = np.where(df['Buy_Signal'], df['Exit_Price'] - df['Entry_Price'], 0)
-    df['Exit_Time'] = df['Datetime'].shift(-shift)
-    trades = df[df['Buy_Signal']].copy()
-    trades = trades.dropna(subset=['Exit_Price'])
-    trade_log = trades[['Datetime', 'Exit_Time','Entry_Price', 'Exit_Price', 'PnL', 'Prediction']].copy()
-    trade_log['Datetime'] = trade_log['Datetime'].astype(str)
-    trade_log['Exit_Time'] = trade_log['Exit_Time'].astype(str)
+def backtest_strategy(
+    df,
+    shift,
+    prob_threshold,
+    prob_col="Score",
+    original_df=None,
+    fee_bps_per_side=1.0,
+    slippage_bps_per_side=0.5,
+    initial_capital=10000.0,
+    require_after_cost=True,
+):
+    """
+    Backtest assuming finite capital. Each trade uses 100% of capital, then updates
+    capital after exit (no overlapping trades). Compare to buy-and-hold with same capital.
+    """
 
-    trade_log.index.name = 'TradeIndex'
+    df = df.copy().dropna(subset=[prob_col, "Close", "Datetime"])
 
+    # Generate signals
+    df["Buy_Signal"] = df[prob_col] > prob_threshold
+    df["Entry_Price"] = df["Close"]
+    df["Exit_Price"] = df["Close"].shift(-shift)
+    df["Exit_Time"] = df["Datetime"].shift(-shift)
+
+    # Only valid trades
+    trades = df[df["Buy_Signal"]].copy().dropna(subset=["Exit_Price"])
+
+    # Round-trip transaction cost in pct
+    rt_cost_pct = 2.0 * (fee_bps_per_side + slippage_bps_per_side) / 1e4
+
+    # Track capital evolution
+    capital = initial_capital
+    equity_curve = [capital]
+    trade_log = []
+
+    i = 0
+    while i < len(df) - shift:
+        row = df.iloc[i]
+        if row["Score"] > prob_threshold:
+            entry_time = row["Datetime"]
+            entry_price = row["Close"]
+
+            exit_row = df.iloc[i + shift]
+            exit_time = exit_row["Datetime"]
+            exit_price = exit_row["Close"]
+
+            gross_ret = (exit_price - entry_price) / entry_price
+            net_ret = gross_ret - rt_cost_pct if require_after_cost else gross_ret
+
+            capital *= (1 + net_ret)
+            equity_curve.append(capital)
+
+            trade_log.append({
+                "Entry_Time": str(entry_time),
+                "Exit_Time": str(exit_time),
+                "Entry_Price": entry_price,
+                "Exit_Price": exit_price,
+                "GrossRetPct": gross_ret,
+                "NetRetPct": net_ret,
+                "Capital": capital,
+                prob_col: row[prob_col],
+            })
+
+            i += shift  # skip forward by holding period
+        else:
+            i += 1
+
+    trade_log = pd.DataFrame(trade_log)
+
+    # Stats
     total_trades = len(trade_log)
-    winning_trades = (trade_log['PnL'] > 0).sum()
-    win_rate = winning_trades / total_trades if total_trades > 0 else 0
-    total_return = trade_log['PnL'].sum()
+    win_rate = (trade_log["NetRetPct"] > 0).mean() if total_trades > 0 else 0.0
+    final_capital = capital
 
-    print(f"\nStrategy Backtest:")
-    print(f"Total Trades: {total_trades}")
-    print(f"Win Rate: {win_rate:.2%}")
-    print(f"Total Return: {total_return:.2f}")
-    
-    if original_df is not None and 'Close' in original_df:
-        buy_hold_return = original_df['Close'].iloc[-1] - original_df['Close'].iloc[0]
-        print(f"Buy and Hold Return: {buy_hold_return:.2f} points")
+    print("\nStrategy Backtest (finite capital):")
+    print(f"Initial Capital: {initial_capital:.2f}")
+    print(f"Final Capital:   {final_capital:.2f}")
+    print(f"Total Trades:    {total_trades}")
+    print(f"Win Rate:        {win_rate:.2%}")
+    print(f"Net Return:      {((final_capital / initial_capital) - 1):.2%}")
+
+    # Buy and hold benchmark
+    if original_df is not None and "Close" in original_df:
+        bh_final = initial_capital * (
+            original_df["Close"].iloc[-1] / original_df["Close"].iloc[0]
+        )
+        print(f"Buy & Hold Final Capital: {bh_final:.2f}")
+        print(f"Buy & Hold Net Return:   {((bh_final / initial_capital) - 1):.2%}")
 
     trade_log.to_csv("trades_with_dates.csv", index=True)
+    return trade_log, equity_curve
 
 
 
+def explore_shift_metrics(train: pd.DataFrame, 
+                          val: pd.DataFrame, 
+                          model: str, 
+                          prob_threshold: float = 0.55,
+                          fee_bps_per_side: float = 1.0, 
+                          slippage_bps_per_side: float = 0.5,
+                          min_ret_pct: float = 0.0,
+                          require_after_cost: bool = True) -> pd.DataFrame | None:
+    """
+    Explore SHIFT_RANGE with richer metrics (AUC, PnL, WinRate, Coverage, BaseUpRate).
+    Supports XGBoost ('xgb') or Logistic Regression ('logit').
+    """
+    if model not in {"xgb", "logit"}:
+        raise ValueError("model must be either 'xgb' or 'logit'")
 
-def train_and_test_model(train_df, test_df, shift, cutoff=CUTOFF):
-    # Add target to both
-    train_df = add_target(train_df.copy(), shift)
-    test_df = add_target(test_df.copy(), shift)
-
-    # Clean
-    train_df = train_df.replace([np.inf, -np.inf], np.nan).dropna()
-    test_df = test_df.replace([np.inf, -np.inf], np.nan).dropna()
-
-    X_train = train_df[STRATEGY]
-    y_train = train_df['Target']
-    X_test = test_df[STRATEGY]
-    y_test = test_df['Target']
-
-    model = XGBClassifier(eval_metric='logloss', random_state=42)
-    model.fit(X_train, y_train)
-    y_pred_prob = model.predict_proba(X_test)[:, 1]
-
-    test_df = test_df.loc[X_test.index]
-    test_df['Prediction'] = (y_pred_prob > cutoff).astype(int)
-
-    return test_df, y_test, y_pred_prob
-
-def explore_shift_auc(train, val):
-    print(f"Exploring AUC over SHIFT range for {TICKER} on {INTERVAL} interval\n")
+    print(f"Exploring metrics over SHIFT range for {TICKER} on {INTERVAL} interval with model={model}\n")
     results = []
+
     for shift in SHIFT_RANGE:
         try:
-            train_target = add_target(train.copy(), shift)
-            val_target = add_target(val.copy(), shift)
+            # Targets
+            train_t = add_target(train.copy(), shift)
+            val_t   = add_target(val.copy(), shift)
 
-            # Clean data before modeling
-            X_train = train_target[STRATEGY].replace([np.inf, -np.inf], np.nan).dropna()
-            y_train = train_target.loc[X_train.index]['Target']
-            X_val = val_target[STRATEGY].replace([np.inf, -np.inf], np.nan).dropna()
-            y_val = val_target.loc[X_val.index]['Target']
+            # Clean
+            X_train = train_t[STRATEGY].replace([np.inf, -np.inf], np.nan).dropna()
+            y_train = train_t.loc[X_train.index, 'Target']
+            X_val   = val_t[STRATEGY].replace([np.inf, -np.inf], np.nan).dropna()
+            y_val   = val_t.loc[X_val.index, 'Target']
 
-            # Skip if not enough data or only one class
-            if len(y_val) < 10 or len(np.unique(y_val)) < 2:
-                print(f"Shift {shift}: Skipped - insufficient data or single class")
+            # Skip bad folds
+            if len(y_val) < 10 or y_val.nunique() < 2 or y_train.nunique() < 2:
                 continue
 
-            model = XGBClassifier(
-                eval_metric='logloss',
-                random_state=42,
-                n_estimators=100,
-                max_depth=3,
-                learning_rate=0.1
-            )
-            model.fit(X_train, y_train)
-            y_val_prob = model.predict_proba(X_val)[:, 1]
+            # Train + predict
+            if model == "xgb":
+                clf = XGBClassifier(eval_metric="logloss", random_state=42,
+                                    n_estimators=100, max_depth=3, learning_rate=0.1)
+                clf.fit(X_train, y_train)
+                y_val_prob = clf.predict_proba(X_val)[:, 1]
+            else:
+                clf = LogisticRegression(
+                penalty="l2", solver="lbfgs", max_iter=1000,
+                class_weight="balanced", random_state=42
+                )
+                clf.fit(X_train, y_train)
+            
+            y_val_prob = clf.predict_proba(X_val)[:, 1]
+
+            # AUC
             auc_score = roc_auc_score(y_val, y_val_prob)
-            print(f"Shift: {shift:2d} | AUC: {auc_score:.4f}")
-            results.append({'Shift': shift, 'AUC': auc_score})
+
+            # Build val frame
+            val_bt = val_t.loc[X_val.index].copy()
+            val_bt["Score"] = y_val_prob
+            val_bt["Buy_Signal"] = val_bt["Score"] > prob_threshold
+            val_bt["Exit_Price"] = val_bt["Close"].shift(-shift)
+            trades = val_bt[val_bt["Buy_Signal"]].dropna(subset=["Exit_Price"]).copy()
+
+            base_up_rate = float(y_val.mean())
+            coverage = float(val_bt["Buy_Signal"].mean())
+
+            # Gross & Net returns
+            trades["GrossRetPct"] = (trades["Exit_Price"] - trades["Close"]) / trades["Close"]
+            rt_cost_pct = 2.0 * (fee_bps_per_side + slippage_bps_per_side) / 1e4
+            trades["NetRetPct"] = trades["GrossRetPct"] - rt_cost_pct
+
+            use_ret = trades["NetRetPct"] if require_after_cost else trades["GrossRetPct"]
+            wins = use_ret >= min_ret_pct
+
+            total_trades = len(trades)
+            win_rate     = float(wins.mean())
+            val_pnl_pts  = float(((trades["Exit_Price"] - trades["Close"]) - trades["Close"]*rt_cost_pct).sum()) \
+                           if require_after_cost else float((trades["Exit_Price"] - trades["Close"]).sum())
+            
+            results.append({
+                "Shift": shift,
+                "AUC": auc_score,
+                "Trades": total_trades,
+                "Coverage": coverage,
+                "BaseUpRate": base_up_rate,
+                "WinRate": win_rate,
+                "ValPnL": val_pnl_pts
+            })
+
         except Exception as e:
-            print(f"Shift {shift}: Error - {str(e)}")
+            print(f"Shift {shift:2d}: Error - {str(e)}")
 
     if not results:
         print("Warning: No valid shifts found in the specified range!")
         return None
-    
-    return pd.DataFrame(results).sort_values(by='AUC', ascending=False)
+
+    return pd.DataFrame(results).sort_values(by="ValPnL", ascending=False).reset_index(drop=True)
+
+
 def evaluate_on_test(train_df: pd.DataFrame, val_df: pd.DataFrame,
                      test_df: pd.DataFrame, shift: int,
                      features: list, cutoff=CUTOFF, model="xgb"):
@@ -348,8 +410,6 @@ def evaluate_on_test(train_df: pd.DataFrame, val_df: pd.DataFrame,
     Retrain on train+val using the chosen shift, then evaluate on test_df.
     Supports either 'xgb' or 'logit' models.
     """
-
-
     # Clean
     train_df = train_df.replace([np.inf, -np.inf], np.nan).dropna()
     val_df = val_df.replace([np.inf, -np.inf], np.nan).dropna()
@@ -373,25 +433,29 @@ def evaluate_on_test(train_df: pd.DataFrame, val_df: pd.DataFrame,
         y_pred_prob = final_model.predict_proba(X_test)[:, 1]
 
     elif model == "logit":
-        X_comb_const = sm.add_constant(X_comb)
-        X_test_const = sm.add_constant(X_test)
-        final_model = sm.Logit(y_comb, X_comb_const).fit(disp=0)
-        y_pred_prob = final_model.predict(X_test_const)
+        final_model = LogisticRegression(
+        penalty="l2", solver="lbfgs", max_iter=2000,
+        class_weight="balanced", random_state=42
+    )
+        final_model.fit(X_comb, y_comb)
+        y_pred_prob = final_model.predict_proba(X_test)[:, 1]
 
     else:
         raise ValueError("model must be either 'xgb' or 'logit'")
 
-    test_t['Prediction'] = (y_pred_prob > cutoff).astype(int)
+    test_t['Score'] = y_pred_prob
+    test_t['Prediction'] = (test_t['Score'] > cutoff).astype(int)
 
     return test_t, y_test, y_pred_prob
 
 
 # Study dataset using provided train/val split to select shift
-def study_dataset(train, val, full_df):
-    global OPTIMAL_SHIFT
+def study_dataset(train, val, full_df,model):
+    # Explore metrics over multiple shifts
+    results_df = explore_shift_metrics(train, val,model)
 
-    # Explore AUC over multiple shifts
-    results_df = explore_shift_auc(train, val)
+    print(results_df)
+
     
     if results_df.empty:
         print("No valid shifts found. Cannot proceed with analysis.")
@@ -407,20 +471,13 @@ def study_dataset(train, val, full_df):
     plt.ylabel('AUC Score')
     plt.grid(True)
 
-    # Set optimal shift globally for future studies
     OPTIMAL_SHIFT = int(results_df.iloc[0]['Shift'])
-    print(f"\nOptimal SHIFT based on validation AUC: {OPTIMAL_SHIFT}")
+    print(f"\nOptimal SHIFT based on validation ValPnL: {OPTIMAL_SHIFT}")
 
     # Final model trained on full data
     df_final = add_target(full_df.copy(), shift=OPTIMAL_SHIFT)
-    df_final, y_final, y_pred_prob = generate_regression_output(df_final)
 
-    plot_prediction_distribution(y_pred_prob)
-    add_roc_plot(y_final, y_pred_prob, title=f'ROC Curve (SHIFT = {OPTIMAL_SHIFT})')
-    add_confusion_matrix(df_final)
-
-    return df_final, results_df
-
+    return df_final, results_df, OPTIMAL_SHIFT
 
 def add_indicators(df):
     df = add_MACD(df)
@@ -447,16 +504,13 @@ if __name__ == '__main__':
     df = add_indicators(df)
 
     # Find best shift using train/val and train final model on full df
-    df_final, results_df = study_dataset(train, val, df)
+    df_final, results_df, OPTIMAL_SHIFT = study_dataset(train, val, df,model= MODEL)
 
-    # Evaluate optimal model on test set
-    #test_df, y_test, y_prob = train_and_test_model(train, test, shift=OPTIMAL_SHIFT)
     test_df, y_test, y_prob = evaluate_on_test(train, val, test, shift=OPTIMAL_SHIFT, features=STRATEGY,cutoff=CUTOFF,
-                                               model="xgb")
-    
+                                               model=MODEL)
     plot_prediction_distribution(y_prob)
     add_roc_plot(y_test, y_prob, title=f'ROC Curve (Test Set, SHIFT={OPTIMAL_SHIFT})')
-    add_confusion_matrix(test_df)
+    # add_confusion_matrix(test_df)
 
     # Backtest
-    backtest_strategy(test_df, shift=OPTIMAL_SHIFT, threshold=0.6, original_df=test)
+    backtest_strategy(test_df, shift=OPTIMAL_SHIFT,prob_threshold=CUTOFF, original_df=test)
