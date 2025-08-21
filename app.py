@@ -409,7 +409,6 @@ class App:
         # Prepare data for the pie chart
         labels: List[str] = ["TSLA", "NVDA", "CLSK", "ETF", "CASH"]
         sizes: List[float] = [stock["shares"] * stock["price"] for stock in portfolio.values()]
-        print(sizes)
         # Define a larger color palette
         colors = [
             '#FF5733', # red-orange
