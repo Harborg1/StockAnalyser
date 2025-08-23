@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import math
 import yfinance as yf
 
 """
@@ -15,12 +16,12 @@ This tool visualizes recent financial crises and shows how long it took for the 
 load_dotenv("passcodes.env")
 fred = Fred(api_key=os.getenv("FRED_KEY"))
 
-
 # Define both crisis events
 crisis_data = [
     {
         "label": "Dotcom Bubble",
         "range": ("1999-01-01", "2003-12-31"),
+        "inversion": "2002-02-02",
         "bottom": "2002-10-09",
         "color": "purple"
     },
@@ -28,19 +29,21 @@ crisis_data = [
     {
         "label": "Global Financial Crisis",
         "range": ("2006-01-01", "2010-12-31"),
+        "inversion": "2006-01-31",
         "bottom": "2009-03-09",
         "color": "darkgreen"
     },
     {
         "label": "COVID-19 Crash",
         "range": ("2019-01-01", "2021-12-31"),
-        "inversion": "2019-08-01",
+         "inversion": "2019-08-27",
         "bottom": "2020-03-23",
         "color": "blue"
     },
      {
         "label": "2022-2023 Bear Market",
-        "range": ("2022-01-01", "2023-12-31"),          
+        "range": ("2022-01-01", "2023-12-31"),  
+        "inversion": "2022-04-01",        
         "bottom": "2022-10-13",                 
         "color": "firebrick"
     }
@@ -64,7 +67,8 @@ def calculate_spy_drop(crisis_data, output_path="spy_crisis_drops.csv"):
     results = []
 
     for crisis in crisis_data:
-        start, end = crisis["range"]
+        _, end = crisis["range"]
+        start = crisis["inversion"]
         bottom_date = pd.to_datetime(crisis["bottom"])
 
         df = yf.download("SPY", start=start, end=end, progress=False, auto_adjust=True)
@@ -77,7 +81,7 @@ def calculate_spy_drop(crisis_data, output_path="spy_crisis_drops.csv"):
         close_prices = df["Close"]["SPY"]
         start_price = close_prices.iloc[0]
         bottom_price = close_prices.loc[bottom_date]
-       
+
         pct_change = ((bottom_price - start_price) / start_price) * 100
 
         results.append({
@@ -95,10 +99,11 @@ def calculate_spy_drop(crisis_data, output_path="spy_crisis_drops.csv"):
 
     return df_result
 
+n = len(crisis_data)
+cols = 2
+rows = math.ceil(n / cols)
 
-
-# Plot with 2x2 layout (3 used)
-fig, axes = plt.subplots(2, 2, figsize=(10, 8), sharey=False)
+fig, axes = plt.subplots(rows, cols, figsize=(9, 4 * rows), sharey=False)
 axes = axes.flatten()
 
 for ax, crisis in zip(axes, crisis_data):
