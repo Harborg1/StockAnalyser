@@ -711,8 +711,9 @@ class App:
             stock,
             download=True)
         # Save the figure as a PDF
-        filename: str = f"{stock}_{year}_{month}.pdf"
+        filename: str = f"images/{stock}_{year}_{month}.pdf"
         self.figure.savefig(filename)
+
 
     def show_market_state(self) -> None:
         current_date = datetime.now().strftime("%Y-%m-%d")

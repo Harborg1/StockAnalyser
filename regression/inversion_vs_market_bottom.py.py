@@ -130,59 +130,68 @@ def calculate_spy_drop(crisis_data, output_path="spy_crisis_drops.csv"):
 
     df_result = pd.DataFrame(results)
     df_result.to_csv(output_path, index=False)
+
     print(f"\n✅ Clean CSV saved to: {output_path}")
 
     return df_result
 
-n = len(crisis_data)
-cols = 2
-rows = math.ceil(n / cols)
 
-fig, axes = plt.subplots(rows, cols, figsize=(10, 2 * rows), sharey=False)
+def plot_crisis_data(crisis_data, download = False):
+    n = len(crisis_data)
+    cols = 2
+    rows = math.ceil(n / cols)
 
-axes = axes.flatten()
+    fig, axes = plt.subplots(rows, cols, figsize=(10, 2 * rows), sharey=False)
 
-for ax, crisis in zip(axes, crisis_data):
-    spread, first_inversion = get_spread(*crisis["range"])
+    axes = axes.flatten()
 
-    inversion_date = first_inversion
-    bottom_date = pd.to_datetime(crisis["bottom"])
-    days_between = (bottom_date - inversion_date).days
+    for ax, crisis in zip(axes, crisis_data):
+        spread, first_inversion = get_spread(*crisis["range"])
+        inversion_date = first_inversion
+        bottom_date = pd.to_datetime(crisis["bottom"])
+        if inversion_date < spread.index[0] or bottom_date < spread.index[0]:
+            raise ValueError("Inversion or bottom date is outside the data range.")
+        
 
-    if inversion_date < spread.index[0] or bottom_date < spread.index[0]:
-        raise ValueError("Inversion or bottom date is outside the data range.")
-    
-    nearest_bottom = spread.index[spread.index.get_indexer([bottom_date], method="nearest")[0]]
-    bottom_value = spread.loc[nearest_bottom, "T10Y2Y"]
+        ax.plot(spread.index, spread["T10Y2Y"], label="10Y - 2Y Spread", color="black")
+        ax.axhline(0, color="red", linestyle="--", linewidth=1)
+        ax.axvline(first_inversion, color="orange", linestyle="--", label=f"Inversion ({inversion_date.date()})")
+        ax.axvline(bottom_date, color=crisis["color"], linestyle="--", label=f"Market Bottom ({bottom_date.date()})")
 
-    ax.plot(spread.index, spread["T10Y2Y"], label="10Y - 2Y Spread", color="black")
-    ax.axhline(0, color="red", linestyle="--", linewidth=1)
-    ax.axvline(first_inversion, color="orange", linestyle="--", label=f"Inversion ({inversion_date.date()})")
-    ax.axvline(nearest_bottom, color=crisis["color"], linestyle="--", label=f"Market Bottom ({bottom_date.date()})")
+        ax.set_title(f"{crisis['label']} ({crisis['range'][0][:4]}–{crisis['range'][1][:4]})")
+        ax.set_ylabel("Spread (%)")
+        ax.grid(True)
+        ax.legend(fontsize=5.5, frameon=True, framealpha=0.8, fancybox=True)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+        ax.tick_params(axis='x', rotation=45)
 
-    ax.set_title(f"{crisis['label']} ({crisis['range'][0][:4]}–{crisis['range'][1][:4]})")
-    ax.set_ylabel("Spread (%)")
-    ax.grid(True)
-    ax.legend(fontsize=5.5, frameon=True, framealpha=0.8, fancybox=True)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-    ax.tick_params(axis='x', rotation=45)
+    # Remove unused subplot if only 3 crises
+    if len(crisis_data) < len(axes):
+        for j in range(len(crisis_data), len(axes)):
+            fig.delaxes(axes[j])
 
-# Remove unused subplot if only 3 crises
-if len(crisis_data) < len(axes):
-    for j in range(len(crisis_data), len(axes)):
-        fig.delaxes(axes[j])
+    plt.subplots_adjust(wspace=0.8, hspace=0.8)
+    plt.tight_layout()
+    plt.show()
 
-plt.subplots_adjust(wspace=0.8, hspace=0.8)
-plt.tight_layout()
-plt.show()
+    if download:
+        filename = f"images/bear_markets.pdf"
+
+        fig.savefig(filename)
+
+
+plot_crisis_data(crisis_data=crisis_data)
+
 
 df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
+
+
 print(df_results)
 
-spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
+# spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
 
-start = spread.index.min()
+# start = spread.index.min()
 
-end = spread.index.max()
+# end = spread.index.max()
 
-get_spread(start=start,end=end, plot=True)
+# get_spread(start=start,end=end, plot=True)
