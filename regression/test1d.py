@@ -8,7 +8,7 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc, roc_auc_score
 from xgboost import XGBClassifier
 from sklearn.linear_model import LogisticRegression
 
-TICKER = 'QQQ'
+TICKER = 'TSLA'
 INTERVAL = '1d'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
 SHIFT_RANGE = range(1, 120)

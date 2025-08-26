@@ -8,8 +8,8 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc, roc_auc_score
 from xgboost import XGBClassifier
 from sklearn.linear_model import LogisticRegression
 
-TICKER = 'QQQ'
-INTERVAL = '1d'
+TICKER = 'SPY'
+INTERVAL = '1h'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
 SHIFT_RANGE = range(1, 120)
 MACD_FAST = 12
@@ -33,8 +33,8 @@ MODEL =  "logit"
 STRATEGY = ['BB', 'MACD_hist', 'RSI', 'MFI']
 OPTIMAL_SHIFT = None
 
-
 def get_data(ticker=TICKER, lookback=LOOKBACK, interval=INTERVAL, plot = False):
+
     df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD)
     df.rename(columns={'Date': 'Datetime'}, inplace=True)
     df.columns = df.columns.get_level_values(0)
@@ -212,6 +212,7 @@ def plot_prediction_distribution(y_pred_prob):
     #plt.show()
     plt.close()
 
+
 def train_val_test_split(df, train_size=0.6, val_size=0.2):
     total_len = len(df)
     train_end = int(total_len * train_size)
@@ -231,6 +232,7 @@ def backtest_strategy(
     original_df=None,
     fee_bps_per_side=1.0,
     slippage_bps_per_side=0.5,
+
     initial_capital=10000.0,
     require_after_cost=True,
 ):
@@ -239,16 +241,20 @@ def backtest_strategy(
     capital after exit (no overlapping trades). Compare to buy-and-hold with same capital.
     """
 
-    df = df.copy().dropna(subset=[prob_col, "Close", "Datetime"])
+    if INTERVAL == "1h":
+        df = df.copy().dropna(subset=[prob_col, "Close", "Datetime"])
+    else:
+        df = df.copy().dropna(subset=[prob_col, "Close", "Date"])
 
     # Generate signals
     df["Buy_Signal"] = df[prob_col] > prob_threshold
     df["Entry_Price"] = df["Close"]
     df["Exit_Price"] = df["Close"].shift(-shift)
-    df["Exit_Time"] = df["Datetime"].shift(-shift)
 
-    # Only valid trades
-    trades = df[df["Buy_Signal"]].copy().dropna(subset=["Exit_Price"])
+    if INTERVAL == "1h":
+        df["Exit_Time"] = df["Datetime"].shift(-shift)
+    else:
+        df = df.copy().dropna(subset=[prob_col, "Close", "Date"])
 
     # Round-trip transaction cost in pct
     rt_cost_pct = 2.0 * (fee_bps_per_side + slippage_bps_per_side) / 1e4
@@ -262,11 +268,21 @@ def backtest_strategy(
     while i < len(df) - shift:
         row = df.iloc[i]
         if row["Score"] > prob_threshold:
-            entry_time = row["Datetime"]
-            entry_price = row["Close"]
+
+            if INTERVAL == "1h":
+                entry_time = row["Datetime"]
+                entry_price = row["Close"]
+            else: 
+                entry_time = row["Date"]
+                entry_price = row["Close"]
 
             exit_row = df.iloc[i + shift]
-            exit_time = exit_row["Datetime"]
+            if INTERVAL == "1h":
+                exit_time = exit_row["Datetime"]
+
+            else: 
+                 exit_time = exit_row["Date"]
+
             exit_price = exit_row["Close"]
 
             gross_ret = (exit_price - entry_price) / entry_price
@@ -313,7 +329,7 @@ def backtest_strategy(
         print(f"Buy & Hold Net Return:   {((bh_final / initial_capital) - 1):.2%}")
 
     trade_log.to_csv("csv_files/trades_with_dates.csv", index=True)
-    
+
     return trade_log, equity_curve
 def find_best_shift_by_pnl(
     train: pd.DataFrame, 
@@ -457,7 +473,6 @@ def run_shift_range_backtest(train, val, test, shift_range=SHIFT_RANGE, features
     return results_df
 
     
-
 def evaluate_on_test(train_df: pd.DataFrame, val_df: pd.DataFrame,
                      test_df: pd.DataFrame, shift: int,
                      features: list, cutoff=CUTOFF, model=MODEL):

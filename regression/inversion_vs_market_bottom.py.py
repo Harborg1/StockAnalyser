@@ -41,7 +41,6 @@ crisis_data = [
         "color": "brown"
     },
 
-
     {
         "label": "Dotcom Bubble",
         "range": ("1999-01-01", "2003-12-31"),
@@ -69,7 +68,15 @@ crisis_data = [
         "inversion": "2022-04-01",        
         "bottom": "2022-10-13",                 
         "color": "firebrick"
+    },
+     {
+        "label": "2025 Bear Market",
+        "range": ("2024-01-01", "2025-08-01"),  
+        "inversion": "2024-09-03",              
+        "bottom": "2025-04-07",                 
+        "color": "black"
     }
+
 ]
 
 # Function to get and prepare spread data for a given date range
@@ -99,14 +106,17 @@ def get_spread(start, end, plot=False):
 def calculate_spy_drop(crisis_data, output_path="spy_crisis_drops.csv"):
     results = []
 
-    for crisis in crisis_data:
+    for i, crisis in enumerate(crisis_data):
         _, end = crisis["range"]
         start = crisis["inversion"]
+
         bottom_date = pd.to_datetime(crisis["bottom"])
 
         ticker = "^GSPC" if pd.to_datetime(start).year < 1993 else "SPY"
 
         df = yf.download(ticker, start=start, end=end, progress=False, auto_adjust=True)
+
+
         df.index = pd.to_datetime(df.index)
 
         if df.empty or bottom_date not in df.index:
@@ -180,13 +190,14 @@ def plot_crisis_data(crisis_data, download = False):
         fig.savefig(filename)
 
 
-plot_crisis_data(crisis_data=crisis_data)
+plot_crisis_data(crisis_data=crisis_data,download=True)
 
 
 df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
 
-
 print(df_results)
+
+
 
 # spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
 
