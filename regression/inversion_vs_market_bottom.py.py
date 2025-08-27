@@ -16,7 +16,6 @@ This tool visualizes recent financial crises and shows how long it took for the 
 load_dotenv("passcodes.env")
 fred = Fred(api_key=os.getenv("FRED_KEY"))
 
-# Define both crisis events
 crisis_data = [
     {
         "label": "1980 Bear Market (Volcker #1)",
@@ -68,14 +67,14 @@ crisis_data = [
         "inversion": "2022-04-01",        
         "bottom": "2022-10-13",                 
         "color": "firebrick"
-    },
-     {
-        "label": "2025 Bear Market",
-        "range": ("2024-01-01", "2025-08-01"),  
-        "inversion": "2024-09-03",              
-        "bottom": "2025-04-07",                 
-        "color": "black"
     }
+    #  {
+    #     "label": "2025 Bear Market",
+    #     "range": ("2024-01-01", "2025-08-01"),  
+    #     "inversion": "2024-09-03",              
+    #     "bottom": "2025-04-07",                 
+    #     "color": "black"
+    # }
 
 ]
 
@@ -190,14 +189,13 @@ def plot_crisis_data(crisis_data, download = False):
         fig.savefig(filename)
 
 
-plot_crisis_data(crisis_data=crisis_data,download=True)
+# plot_crisis_data(crisis_data=crisis_data,download=True)
 
+# df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
 
-df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
+# print(df_results)
 
-print(df_results)
-
-
+get_spread("2025-01-07","2025-08-01",plot=True)
 
 # spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
 

@@ -4,17 +4,15 @@ import matplotlib.pyplot as plt
 
 START_DATE = "2024-01-01"
 END_DATE   = "2025-08-01"
-TICKER     = "CLSK"
+TICKER     = "PLTR"
 
 def get_data(ticker=TICKER, start=START_DATE, end=END_DATE):
     data = yf.download(ticker, start=start, end=end, auto_adjust=False)
-
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
 
     data["3Day_Change"] = data["Close"].pct_change(periods=3) * 100
     return data
-
 
 def backtest_buy_down_sell_up(
     data,
@@ -26,6 +24,7 @@ def backtest_buy_down_sell_up(
     fee_bps_per_side=10,   # 0.1% cost
     slippage_bps_per_side=5  # 0.05% slippage
 ):
+    
     in_position = False
     capital = initial_capital
     shares = 0
@@ -91,6 +90,67 @@ def backtest_buy_down_sell_up(
 
     return trades, final_value, pd.DataFrame(portfolio_values, columns=["Date", "Portfolio"])
 
+def DCA_strategy(
+    data,
+    initial_capital=10000,
+    fee_bps_per_side=10,
+    slippage_bps_per_side=5
+):
+    portfolio_values = []
+    trades = []
+    capital = initial_capital
+    total_shares = 0
+
+    rt_cost_pct = 2 * (fee_bps_per_side + slippage_bps_per_side) / 1e4
+
+    # Determine number of DCA intervals (e.g., every 5 trading days)
+    num_trading_days = len(data)
+    num_dca_trades = num_trading_days // 5  # invest every 5 trading days
+    investment_interval = 5
+
+    # Recalculate the exact amount to invest per interval
+    investment_amount = initial_capital / num_dca_trades
+
+    for i in range(0, num_trading_days, investment_interval):
+        date = data.index[i]
+        close = float(data.iloc[i]["Close"])
+
+        # Adjusted price including slippage and fees
+        price_with_costs = close * (1 + rt_cost_pct)
+        num_shares = investment_amount / price_with_costs  # fractional shares
+
+        if num_shares > 0:
+            cost = num_shares * price_with_costs
+            capital -= cost
+            total_shares += num_shares
+            trades.append({
+                "Date": date,
+                "Action": "BUY",
+                "Price": close,
+                "Shares": round(total_shares, 6),
+                "Capital": round(capital, 2)
+            })
+
+        # Track daily portfolio value (mark-to-market)
+        portfolio_value = capital + total_shares * close
+        portfolio_values.append((date, portfolio_value))
+
+    # Fill in remaining dates for complete curve
+    last_known_index = 0
+    for i in range(num_trading_days):
+        date = data.index[i]
+        close = float(data.iloc[i]["Close"])
+        portfolio_value = capital + total_shares * close
+        if i > last_known_index and date > portfolio_values[-1][0]:
+            portfolio_values.append((date, portfolio_value))
+
+    final_value = capital + total_shares * float(data.iloc[-1]["Close"])
+    portfolio_values.append((data.index[-1], final_value))
+
+    return trades, final_value, pd.DataFrame(portfolio_values, columns=["Date", "Portfolio"])
+
+
+            
 def summarize_trades(trades, start_capital, data=None):
     profits = []
     for i in range(0, len(trades) - 1, 2):
@@ -117,25 +177,40 @@ def summarize_trades(trades, start_capital, data=None):
     }
 
 
-# ==== Run example ====
 start_capital = 10000
 data = get_data()
-trades, final_cap, equity_curve = backtest_buy_down_sell_up(data, initial_capital=start_capital)
-summary = summarize_trades(trades, start_capital,data)
 
-print(pd.DataFrame(trades))
-print(summary)
+# Run "buy the dip, sell the rip" strategy
+trades_bsr, final_cap_bsr, equity_curve_bsr = backtest_buy_down_sell_up(
+    data, initial_capital=start_capital
+)
 
-# Buy & Hold
+# Run DCA strategy
+trades_dca, final_cap_dca, equity_curve_dca = DCA_strategy(
+    data, initial_capital=start_capital
+)
+
+# Summaries
+summary_bsr = summarize_trades(trades_bsr, start_capital, data)
+summary_dca = summarize_trades(trades_dca, start_capital, data)
+
+print("Buy-Sell-Rip Summary:")
+print(summary_bsr)
+print("\nDCA Summary:")
+print(summary_dca)
+
+# Buy & Hold benchmark
 start_price = data.iloc[0]["Close"]
 end_price = data.iloc[-1]["Close"]
 buy_and_hold_value = start_capital * (end_price / start_price)
 
-# Plot
+# ==== Plot both strategies ====
 plt.figure(figsize=(12, 6))
-plt.plot(equity_curve["Date"], equity_curve["Portfolio"], label="Strategy")
+plt.plot(equity_curve_bsr["Date"], equity_curve_bsr["Portfolio"], label="Buy Down / Sell Up")
+plt.plot(equity_curve_dca["Date"], equity_curve_dca["Portfolio"], label="DCA")
 plt.axhline(y=buy_and_hold_value, color="r", linestyle="--", label="Buy & Hold Final Value")
-plt.title(f"{TICKER} Strategy vs Buy & Hold\n({START_DATE} to {END_DATE})")
+
+plt.title(f"{TICKER} Strategies vs Buy & Hold\n({START_DATE} to {END_DATE})")
 plt.xlabel("Date")
 plt.ylabel("Portfolio Value ($)")
 plt.legend()
