@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 START_DATE = "2024-01-01"
 END_DATE   = "2025-08-01"
-TICKER     = "PLTR"
+TICKER     = "CLSK"
 
 def get_data(ticker=TICKER, start=START_DATE, end=END_DATE):
     data = yf.download(ticker, start=start, end=end, auto_adjust=False)

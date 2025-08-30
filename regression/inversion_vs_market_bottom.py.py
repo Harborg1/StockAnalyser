@@ -9,7 +9,7 @@ import yfinance as yf
 
 """
 A yield curve inversion is one of the strongest predictors of economic recessions.
-This tool visualizes recent financial crises and shows how long it took for the market to bottom after the inversion.
+This tool visualizes recent financial crises and shows how long it took for the market to bottom after the inversion of the T10Y2Y yield.
 """
 
 # Load .env file
@@ -130,7 +130,7 @@ def calculate_spy_drop(crisis_data, output_path="spy_crisis_drops.csv"):
 
         results.append({
             "label": crisis["label"],
-            "start_date": df.index[0].date(),
+            "inversion_date": df.index[0].date(),
             "bottom_date": bottom_date.date(),
             "start_price": round(start_price, 2),
             "bottom_price": round(bottom_price, 2),
@@ -189,11 +189,11 @@ def plot_crisis_data(crisis_data, download = False):
         fig.savefig(filename)
 
 
-# plot_crisis_data(crisis_data=crisis_data,download=True)
+plot_crisis_data(crisis_data=crisis_data)
 
-# df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
+df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
 
-# print(df_results)
+print(df_results)
 
 get_spread("2025-01-07","2025-08-01",plot=True)
 
