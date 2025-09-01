@@ -38,14 +38,11 @@ class stock_reader(MarketReaderBase):
     def get_close_price(self, s, e, stock):
         data = self.download_data(s, e, stock)
         l_close = []
-        # Check if data is a DataFrame or error message
         if not data.empty:
             l_close = round(data['Close'], 2).values.flatten().tolist()
             return l_close
-        
         else:
-            # Return the error message or handle it (e.g., log or raise an error)
-            return data  # This will return the error message directly
+            return data 
     
 
     # Function to generate non-weekend weeks with 5 elements each
@@ -86,11 +83,11 @@ class stock_reader(MarketReaderBase):
 
         fomc_data_all = self.get_json_data("fomc.json")
         
-        cpi_data = {
+        cpi_dates = {
             pd.Timestamp(item["date"]) for item in cpi_data_all
         }
 
-        fomc_data  = {
+        fomc_dates  = {
             pd.Timestamp(item["date"]) for item in fomc_data_all
         }
 
@@ -210,13 +207,13 @@ class stock_reader(MarketReaderBase):
                     ax.text(day_idx + 0.5, -week_idx - 0.5, str(stock_market_holidays_list[current_date]),
                             ha='center', va='center', fontsize=7, weight='bold', color='black')
                     
-                elif current_date in cpi_data:
+                elif current_date in cpi_dates:
                      # Place a blue square for CPI data
                     day_rect.set_facecolor("blue")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
                     ax.text(day_idx + 0.5, -week_idx - 0.5, "CPI data date",
                             ha='center', va='center', fontsize=7, weight='bold', color='black')
-                elif current_date in fomc_data:
+                elif current_date in fomc_dates:
                     # Place a yellow square for FOMC data
                     day_rect.set_facecolor("yellow")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')

@@ -9,6 +9,7 @@ class MarketReaderBase:
         self.monthly_date = {}
         self.start_date = "2024-01-01"
         self.end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    
     def get_start_and_end_date(self, year, month):
         key = (year, month)
         if key in self.monthly_date:
@@ -50,7 +51,6 @@ class MarketReaderBase:
         
         # Check if the data is already in the cache
         if cache_key in self.cache:
-            #print(f"Using cached data for {stock} between {s} and {e}.")
             return self.cache[cache_key]
         
         if not self.is_valid_date_range(s):
@@ -59,12 +59,10 @@ class MarketReaderBase:
             return pd.DataFrame()
         
         try:
-            # Attempt to download with a timeout
+            # Attempt to download
             spy_ohlc_df = yf.download(stock, start=s, end=e,auto_adjust=True,progress=False)
             if not spy_ohlc_df.empty:
-                #print("Downloading data...")
                 self.cache[cache_key] = spy_ohlc_df
-                #print(spy_ohlc_df)
                 return spy_ohlc_df
             else:
                 print(f"No data found for {stock} between {s} and {e}.")
@@ -72,7 +70,7 @@ class MarketReaderBase:
         except Exception as ex:
             print(f"Download error for {stock}: {ex}")
             return pd.DataFrame()
-
+        
     def get_price_range_per_day(self, year,month,stock):
         start_date, end_date = self.get_start_and_end_date(year, month)
         data = self.download_data(start_date,end_date,stock)
@@ -105,7 +103,7 @@ class MarketReaderBase:
         start_date, end_date = self.get_start_and_end_date(year, month)
         l_close = self.get_close_price(start_date, end_date, stock)
         if not isinstance(l_close, list):
-            return l_close  # Return error message if get_close_price fails
+            return l_close 
         result = []
         previous_month_end = pd.Timestamp(start_date) - pd.DateOffset(days=1)
         last_month_close = self.get_last_trading_day_close(previous_month_end.year, previous_month_end.month, stock)
