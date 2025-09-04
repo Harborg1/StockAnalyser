@@ -22,11 +22,8 @@ def get_data(ticker=TICKER, lookback=LOOKBACK, interval=INTERVAL):
     subset = df.iloc[-lookback:, :]
     return subset.dropna()
 
-def main():
-    df = get_data()
-    return df
 
-def add_gap_big_moves(df: pd.DataFrame, z: float = 2.0) -> pd.DataFrame:
+def add_gap_big_moves(df: pd.DataFrame, z: float) -> pd.DataFrame:
     """
     Adds columns for gap returns and ±zσ big-gap flags using Open_t vs Close_{t-1}.
     Big_Gap: 1 (gap up), -1 (gap down), 0 otherwise
@@ -44,7 +41,7 @@ def add_gap_big_moves(df: pd.DataFrame, z: float = 2.0) -> pd.DataFrame:
     )
     return d
 
-def gap_win_rates(df: pd.DataFrame, z: float = 2.0, horizon: int = 1) -> dict:
+def gap_win_rates(df: pd.DataFrame, z: float, horizon: int ) -> dict:
     """
     Win definition:
       - horizon=0 (default): same-day follow-through => Close_t > Open_t
@@ -52,7 +49,7 @@ def gap_win_rates(df: pd.DataFrame, z: float = 2.0, horizon: int = 1) -> dict:
     Returns counts, win rates, and avg returns (%) for big gap up and big gap down days.
     """
 
-    d = add_gap_big_moves(df, z=z).copy()
+    d = add_gap_big_moves(df, z=2).copy()
 
     if horizon == 0:
         d['Future_Close'] = d['Close']  # same day
@@ -63,6 +60,8 @@ def gap_win_rates(df: pd.DataFrame, z: float = 2.0, horizon: int = 1) -> dict:
     # Return measured from today's Open to the chosen future Close
     d['Ret_%'] = (d['Future_Close'] / d['Open'] - 1.0) * 100.0
 
+    d["p&L"] = (d['Future_Close'] - d['Open'])
+
     # Need yesterday's close for the gap AND a valid future close
     valid = d.dropna(subset=['Prev_Close', 'Future_Close'])
 
@@ -71,9 +70,10 @@ def gap_win_rates(df: pd.DataFrame, z: float = 2.0, horizon: int = 1) -> dict:
         if subset.empty:
             return {'count': 0, 'win_rate': np.nan, 'avg_ret_%': np.nan}
 
-        wins = (subset['Future_Close'] > subset['Open']).mean()
+        wins = (subset['Future_Close'] > subset['Open']).mean() 
         avg_ret = subset['Ret_%'].mean()
-        return {'count': int(len(subset)), 'win_rate': float(wins), 'avg_ret_%': float(avg_ret)}
+        profit = subset["p&L"].sum()
+        return {'count': int(len(subset)), 'win_rate': float(wins), 'avg_ret_%': float(avg_ret), "p&L": float(profit)}
     
     res_up   = summarize(valid['Big_Gap'] == 1)   # after big gap UP days
     res_down = summarize(valid['Big_Gap'] == -1)  # after big gap DOWN days
@@ -86,9 +86,8 @@ def gap_win_rates(df: pd.DataFrame, z: float = 2.0, horizon: int = 1) -> dict:
         'baseline_all_days': base
     }
 
-
-def get_gap_trade_details(df: pd.DataFrame, z: float = 2.0, horizon: int = 1) -> pd.DataFrame:
-    d = add_gap_big_moves(df, z=z).copy()
+def get_gap_trade_details(df: pd.DataFrame, z:float, horizon:int) -> pd.DataFrame:
+    d = add_gap_big_moves(df, z=2).copy()
 
     d['Signal_Date'] = pd.to_datetime(df['Date'])
 
@@ -105,6 +104,7 @@ def get_gap_trade_details(df: pd.DataFrame, z: float = 2.0, horizon: int = 1) ->
 
     d['Win'] = (d['Exit_Close'] > d['Entry_Open']).astype(int)
 
+    d["Profit_and_loss"] = (d['Exit_Close'] - d['Open'])
 
     # Filter to only valid rows
     d = d.dropna(subset=['Prev_Close', 'Entry_Open', 'Exit_Close'])
@@ -123,18 +123,23 @@ def get_gap_trade_details(df: pd.DataFrame, z: float = 2.0, horizon: int = 1) ->
         'Big_Gap',
         'Gap_%',
         'Trade_%',
-        'Win'
+        'Win',
+        'Profit_and_loss'
     ]].copy()
 
     result = result.sort_values('Signal_Date').reset_index(drop=True)
     result.attrs['params'] = {'z_sigma': z, 'horizon_days': horizon}
     return result
 
-df = main()  # your existing pipeline
+df = get_data()
 
-# trades = get_gap_trade_details(df, z=2.0, horizon=3)  # 0 = same 
+trades = get_gap_trade_details(df, z=2.0, horizon=3)  # 0 = same 
 
 # print(trades.tail(50))
+
+stats_3_days = gap_win_rates(df, z=2.0, horizon=3)
+
+# print(stats_3_days)
 
 # for i in range(0,4):
 #     stats_i_days = gap_win_rates(df, z=2.0, horizon=i)
@@ -142,7 +147,8 @@ df = main()  # your existing pipeline
 #     print("Win rate for big gap up", stats_i_days["big_gap_up"]["win_rate"])
 #     print("Win rate for big gap down", stats_i_days["big_gap_down"]["win_rate"])
 #     print("Win rate for baseline", stats_i_days["baseline_all_days"]["win_rate"])
-
+#     print("P&L for big gap up", stats_i_days["big_gap_up"]["p&L"])
+#     print("P&L for big gap down", stats_i_days["big_gap_down"]["p&L"])
 
 def plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10):
     points = []
@@ -176,5 +182,5 @@ def plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10):
     plt.tight_layout()
     plt.show()
 
-# Call this after df = main()
+# # Call this after df = main()
 plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10)
