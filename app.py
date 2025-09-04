@@ -771,3 +771,4 @@ if __name__ == "__main__":
                 print(f"Final shutdown error: {e}")
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
+    

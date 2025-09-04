@@ -545,7 +545,6 @@ if __name__ == '__main__':
 
     results_df = find_best_shift_by_pnl(train, val,model = MODEL)
 
-
     OPTIMAL_SHIFT = int(results_df.iloc[0]['Shift'])
     print(f"\nOptimal SHIFT based on validation ValPnL: {OPTIMAL_SHIFT}")
 
