@@ -41,10 +41,25 @@ def add_gap_big_moves(df: pd.DataFrame, z: float) -> pd.DataFrame:
     )
     return d
 
-def gap_win_rates(df: pd.DataFrame, z: float, horizon: int ) -> dict:
+def summarize_subset(valid: pd.DataFrame, mask: pd.Series) -> dict:
+    subset = valid.loc[mask]
+    if subset.empty:
+        return {'count': 0, 'win_rate': np.nan, 'avg_ret_%': np.nan, 'p&L': np.nan}
+
+    wins = (subset['Future_Close'] > subset['Open']).mean()
+    avg_ret = subset['Ret_%'].mean()
+    profit = subset['p&L'].sum()
+    return {
+        'count': int(len(subset)),
+        'win_rate': float(wins),
+        'avg_ret_%': float(avg_ret),
+        'p&L': float(profit)
+    }
+
+def gap_win_rates(df: pd.DataFrame, z: float, horizon: int) -> dict:
     """
     Win definition:
-      - horizon=0 (default): same-day follow-through => Close_t > Open_t
+      - horizon=0: same-day follow-through => Close_t > Open_t
       - horizon>0: follow-through from today's open to Close_{t+h} => Close_{t+h} > Open_t
     Returns counts, win rates, and avg returns (%) for big gap up and big gap down days.
     """
@@ -52,32 +67,18 @@ def gap_win_rates(df: pd.DataFrame, z: float, horizon: int ) -> dict:
     d = add_gap_big_moves(df, z=2).copy()
 
     if horizon == 0:
-        d['Future_Close'] = d['Close']  # same day
+        d['Future_Close'] = d['Close']
     else:
-        #Future day
         d['Future_Close'] = d['Close'].shift(-horizon)
 
-    # Return measured from today's Open to the chosen future Close
     d['Ret_%'] = (d['Future_Close'] / d['Open'] - 1.0) * 100.0
+    d['p&L'] = d['Future_Close'] - d['Open']
 
-    d["p&L"] = (d['Future_Close'] - d['Open'])
-
-    # Need yesterday's close for the gap AND a valid future close
     valid = d.dropna(subset=['Prev_Close', 'Future_Close'])
 
-    def summarize(mask: pd.Series) -> dict:
-        subset = valid.loc[mask]
-        if subset.empty:
-            return {'count': 0, 'win_rate': np.nan, 'avg_ret_%': np.nan}
-
-        wins = (subset['Future_Close'] > subset['Open']).mean() 
-        avg_ret = subset['Ret_%'].mean()
-        profit = subset["p&L"].sum()
-        return {'count': int(len(subset)), 'win_rate': float(wins), 'avg_ret_%': float(avg_ret), "p&L": float(profit)}
-    
-    res_up   = summarize(valid['Big_Gap'] == 1)   # after big gap UP days
-    res_down = summarize(valid['Big_Gap'] == -1)  # after big gap DOWN days
-    base     = summarize(valid['Big_Gap'].isin([1, 0, -1]))  # all valid days
+    res_up = summarize_subset(valid, valid['Big_Gap'] == 1)
+    res_down = summarize_subset(valid, valid['Big_Gap'] == -1)
+    base = summarize_subset(valid, valid['Big_Gap'].isin([1, 0, -1]))
 
     return {
         'params': {'z_sigma': z, 'horizon_days': horizon},
@@ -85,6 +86,7 @@ def gap_win_rates(df: pd.DataFrame, z: float, horizon: int ) -> dict:
         'big_gap_down': res_down,
         'baseline_all_days': base
     }
+
 
 def get_gap_trade_details(df: pd.DataFrame, z:float, horizon:int) -> pd.DataFrame:
     d = add_gap_big_moves(df, z=2).copy()
