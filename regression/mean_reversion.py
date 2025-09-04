@@ -133,24 +133,7 @@ def get_gap_trade_details(df: pd.DataFrame, z:float, horizon:int) -> pd.DataFram
     result.attrs['params'] = {'z_sigma': z, 'horizon_days': horizon}
     return result
 
-df = get_data()
 
-trades = get_gap_trade_details(df, z=2.0, horizon=3)  # 0 = same 
-
-# print(trades.tail(50))
-
-stats_3_days = gap_win_rates(df, z=2.0, horizon=3)
-
-# print(stats_3_days)
-
-# for i in range(0,4):
-#     stats_i_days = gap_win_rates(df, z=2.0, horizon=i)
-#     print("Day",i)
-#     print("Win rate for big gap up", stats_i_days["big_gap_up"]["win_rate"])
-#     print("Win rate for big gap down", stats_i_days["big_gap_down"]["win_rate"])
-#     print("Win rate for baseline", stats_i_days["baseline_all_days"]["win_rate"])
-#     print("P&L for big gap up", stats_i_days["big_gap_up"]["p&L"])
-#     print("P&L for big gap down", stats_i_days["big_gap_down"]["p&L"])
 
 def plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10):
     points = []
@@ -184,5 +167,23 @@ def plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10):
     plt.tight_layout()
     plt.show()
 
-# # Call this after df = main()
+df = get_data()
+
+trades = get_gap_trade_details(df, z=2.0, horizon=3)  # 0 = same 
+
+# print(trades.tail(50))
+
+stats_3_days = gap_win_rates(df, z=2.0, horizon=3)
+
+# print(stats_3_days)
+
+# for i in range(0,4):
+#     stats_i_days = gap_win_rates(df, z=2.0, horizon=i)
+#     print("Day",i)
+#     print("Win rate for big gap up", stats_i_days["big_gap_up"]["win_rate"])
+#     print("Win rate for big gap down", stats_i_days["big_gap_down"]["win_rate"])
+#     print("Win rate for baseline", stats_i_days["baseline_all_days"]["win_rate"])
+#     print("P&L for big gap up", stats_i_days["big_gap_up"]["p&L"])
+#     print("P&L for big gap down", stats_i_days["big_gap_down"]["p&L"])
+
 plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10)
