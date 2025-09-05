@@ -127,7 +127,7 @@ def calculate_spy_drop(crisis_data, output_path="spy_crisis_drops.csv"):
         bottom_price = close_prices.loc[bottom_date]
 
         pct_change = ((bottom_price - start_price) / start_price) * 100
-        
+
         results.append({
             "label": crisis["label"],
             "inversion_date": df.index[0].date(),
@@ -193,10 +193,9 @@ plot_crisis_data(crisis_data=crisis_data)
 
 df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
 
-print(df_results)
+# print(df_results)
 
-
-get_spread("2025-01-07","2025-08-01",plot=True)
+# get_spread("2025-01-07","2025-08-01",plot=True)
 
 # spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
 
