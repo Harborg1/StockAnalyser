@@ -166,13 +166,13 @@ class App:
         self.month_entry.grid(row=0, column=3, padx=5)
         self.month_entry.set(datetime.now().month)
 
-        # Button to show market activity
+        # Button to show market performance
         button_frame = ttk.Frame(self.main_frame)
         button_frame.grid(row=3, column=0, sticky="w", pady=10)
         
         self.show_button = self.create_styled_button(
             button_frame,
-            "Show Market Activity",
+            "Show Market Performance",
             self.show_calendar
         )
         self.show_button.grid(row=0, column=0, padx=5)

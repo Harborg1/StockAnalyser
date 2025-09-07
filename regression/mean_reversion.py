@@ -2,23 +2,22 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-
 output_path = "csv_files/mean_reversion_results.csv"
 BASE = "SPY"
-TICKER = 'TSLA'
+TICKER = 'AMZN'
 INTERVAL = '1d'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
-LOOKBACK = 100
+LOOKBACK = 50
+
 
 def get_data(ticker:str, lookback=LOOKBACK, interval=INTERVAL):
-    df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD)
+    df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD,progress=False)
 
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
     df = df.reset_index()  # This creates a 'Date' column
-
-
+    
     for c in ['Open', 'High', 'Low', 'Close', 'Volume']:
         df[f'{c}_Change'] = df[c].pct_change() * 100
 
@@ -145,7 +144,6 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
         'Big_Gap', 'Profit_and_loss_pct',
         'Open_SPY_at_signal', 'Close_SPY_at_exit', 'Profit_and_loss_baseline_pct'
     ]]
-    merged.to_csv(output_path)
 
     # optional: drop overlapping trades before compounding
     t = merged.copy()
@@ -159,6 +157,8 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
             else:
                 keep.append(False)
         t = t.loc[keep].reset_index(drop=True)
+
+    t.to_csv(output_path)
 
     # compounded totals
     base_mult = (1 + t['Profit_and_loss_pct'] / 100.0).prod()
@@ -174,7 +174,7 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
         f'{TICKER}_beats_spy_rate_%': round(float((t['Profit_and_loss_pct'] > t['Profit_and_loss_baseline_pct']).mean() * 100.0),2)
     }
 
-    return merged,stats
+    return t,stats
 
 
 def plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10):
@@ -213,7 +213,101 @@ df = get_data(TICKER)
 trades,stats = get_gap_trade_details(df, z=2.0, horizon=3) 
 
 print(stats)
+def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float, plot: bool) -> pd.Series:
+    # Get SPY data for entire backtest window
+    spy_data = get_data(BASE)
+    spy_data['Date'] = pd.to_datetime(spy_data['Date'])
+    spy_data = spy_data.set_index('Date').sort_index()
+    spy_data['SPY_Return'] = spy_data['Close'].pct_change().fillna(0)
 
+    equity = []
+    capital = initial_capital
+    current_date = spy_data.index.min()
+    seen_dates = set()
+
+    for i in range(len(trades_df)):
+        trade = trades_df.iloc[i]
+        entry_date = trade['Signal_Date']
+        exit_date = trade['Exit_Date']
+
+        # Step 1: SPY returns between last trade exit and this trade entry
+        spy_between = spy_data[(spy_data.index >= current_date) & (spy_data.index < entry_date)]
+        for date, row in spy_between.iterrows():
+            capital *= (1 + row['SPY_Return'])
+            if date not in seen_dates:
+                equity.append((date, capital))
+                seen_dates.add(date)
+
+        # Step 2: KO (or any stock) trade
+        capital *= (1 + trade['Profit_and_loss_pct'] / 100.0)
+
+        if entry_date not in seen_dates:
+            if equity:
+                # Set the capital of today equal to the capital on the previous trading day
+                last_capital = equity[-1][1]
+            else:
+                last_capital = initial_capital  # fallback for first entry
+
+            equity.append((entry_date, last_capital))
+            seen_dates.add(entry_date)
+
+        if exit_date not in seen_dates:
+            equity.append((exit_date, capital))
+            seen_dates.add(exit_date)
+        else:
+            # Overwrite value for existing date
+            equity = [(d, capital) if d == exit_date else (d, v) for d, v in equity]
+
+        current_date = exit_date
+
+    # After last trade, invest in SPY until end of data
+    spy_remaining = spy_data[spy_data.index > current_date]
+    for date, row in spy_remaining.iterrows():
+        capital *= (1 + row['SPY_Return'])
+        if date not in seen_dates:
+            equity.append((date, capital))
+            seen_dates.add(date)
+
+    # Sort by date
+    equity.sort(key=lambda x: x[0])
+    print(equity)
+    
+    # Convert to Series
+    equity_series = pd.Series(
+        data=[v for _, v in equity],
+        index=[d for d, _ in equity]
+    )
+
+    if plot:
+        # Plot SPY equity curve from same window
+        start = equity_series.index.min()
+        end = equity_series.index.max()
+        spy_window = spy_data.loc[start:end]
+        spy_equity = (1 + spy_window['SPY_Return']).cumprod() * initial_capital
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(equity_series.index, equity_series.values, label=f"{TICKER} Gap Strategy + SPY Hold")
+        plt.plot(spy_equity.index, spy_equity.values, label="SPY Buy & Hold")
+        plt.title("Equity Curve Comparison")
+        plt.xlabel("Date")
+        plt.ylabel("Portfolio Value ($)")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    return equity_series
+
+
+df = get_data(TICKER)
+trades, stats = get_gap_trade_details(df, z=2.0, horizon=3)
+
+print(f"Returned trades: {len(trades)}")
+print(f"Stats n_trades: {stats['n_trades']}")
+print(f"Avg PnL: {trades['Profit_and_loss_pct'].mean():.2f}%")
+print(f"Total PnL: {(1 + trades['Profit_and_loss_pct'] / 100).prod() - 1:.2%}")
+
+equity_curve = generate_equity_curve(trades, initial_capital=10000,plot=True)
 
 # stats_3_days = gap_win_rates(df, z=2.0, horizon=3)
 
@@ -225,6 +319,5 @@ print(stats)
 #     print("Win rate for baseline", stats_i_days["baseline_all_days"]["win_rate"])
 #     print("P&L for big gap up", stats_i_days["big_gap_up"]["p&L"])
 #     print("P&L for big gap down", stats_i_days["big_gap_down"]["p&L"])
-
 
 # plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10)
