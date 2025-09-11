@@ -4,12 +4,10 @@ import pandas as pd
 import numpy as np
 output_path = "csv_files/mean_reversion_results.csv"
 BASE = "SPY"
-TICKER = 'AMZN'
+TICKER = 'TSLA'
 INTERVAL = '1d'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
-LOOKBACK = 50
-
-
+LOOKBACK = 1500
 def get_data(ticker:str, lookback=LOOKBACK, interval=INTERVAL):
     df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD,progress=False)
 
@@ -42,12 +40,16 @@ def add_big_gap_moves(df: pd.DataFrame, z: float) -> pd.DataFrame:
     )
     return d
 
-def calculate_subset_metrics(valid: pd.DataFrame, mask: pd.Series) -> dict:
+def calculate_subset_metrics(valid: pd.DataFrame, mask: pd.Series, is_baseline:bool) -> dict:
     subset = valid.loc[mask]
     if subset.empty:
         return {'count': 0, 'win_rate': np.nan, 'avg_ret_%': np.nan, 'p&L': np.nan}
-
+    
     wins = (subset['Future_Close'] > subset['Open']).mean()
+
+    if is_baseline:
+        wins = (subset['Close'] > subset['Open']).mean()
+
     avg_ret = subset['Ret_%'].mean()
     profit = subset['p&L'].sum()
     return {
@@ -76,9 +78,13 @@ def gap_win_rates(df: pd.DataFrame, z: float, horizon: int) -> dict:
     d['p&L'] = d['Future_Close'] - d['Open']
 
     valid = d.dropna(subset=['Prev_Close', 'Future_Close'])
-    res_up = calculate_subset_metrics(valid, valid['Big_Gap'] == 1)
-    res_down = calculate_subset_metrics(valid, valid['Big_Gap'] == -1)
-    base = calculate_subset_metrics(valid, valid['Big_Gap'].isin([1, 0, -1]))
+    res_up = calculate_subset_metrics(valid, valid['Big_Gap'] == 1,False)
+    print("res_up", res_up["win_rate"])
+    res_down = calculate_subset_metrics(valid, valid['Big_Gap'] == -1, False)
+    print("res_down",res_down["win_rate"])
+    base = calculate_subset_metrics(valid, valid['Big_Gap'].isin([-1, 0, 1]), True)
+    print("base", base["win_rate"])
+
 
     return {
         'params': {'z_sigma': z, 'horizon_days': horizon},
@@ -209,94 +215,80 @@ def plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10):
     plt.tight_layout()
     plt.show()
 
-df = get_data(TICKER)
-trades,stats = get_gap_trade_details(df, z=2.0, horizon=3) 
+def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float = 10000, plot: bool = True) -> pd.Series:
+        # Load SPY and TSLA
+        base = get_data(f'{BASE}')
+        ticker = get_data(f'{TICKER}')
 
-print(stats)
-def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float, plot: bool) -> pd.Series:
-    # Get SPY data for entire backtest window
-    spy_data = get_data(BASE)
-    spy_data['Date'] = pd.to_datetime(spy_data['Date'])
-    spy_data = spy_data.set_index('Date').sort_index()
-    spy_data['SPY_Return'] = spy_data['Close'].pct_change().fillna(0)
+        for df in (base, ticker):
+            df['Date'] = pd.to_datetime(df['Date'])
+            df.set_index('Date', inplace=True)
+            df.sort_index(inplace=True)
 
-    equity = []
-    capital = initial_capital
-    current_date = spy_data.index.min()
-    seen_dates = set()
+        # Add daily returns
+        base['SPY_Return_close'] = base['Close'].pct_change().fillna(0)
+        base['SPY_Return_overnight'] = base['Open'] / base['Close'].shift(1) - 1
+        ticker['TSLA_Return_close'] = ticker['Close'].pct_change().fillna(0)
 
-    for i in range(len(trades_df)):
-        trade = trades_df.iloc[i]
-        entry_date = trade['Signal_Date']
-        exit_date = trade['Exit_Date']
+        # Align dates
+        all_days = base.index.union(ticker.index).sort_values()
+        capital = initial_capital
+        equity = []
 
-        # Step 1: SPY returns between last trade exit and this trade entry
-        spy_between = spy_data[(spy_data.index >= current_date) & (spy_data.index < entry_date)]
-        for date, row in spy_between.iterrows():
-            capital *= (1 + row['SPY_Return'])
-            if date not in seen_dates:
-                equity.append((date, capital))
-                seen_dates.add(date)
+        in_trade = False
+        exit_date = None
 
-        # Step 2: KO (or any stock) trade
-        capital *= (1 + trade['Profit_and_loss_pct'] / 100.0)
-
-        if entry_date not in seen_dates:
-            if equity:
-                # Set the capital of today equal to the capital on the previous trading day
-                last_capital = equity[-1][1]
+        for current_date in all_days:
+            if current_date not in base.index or current_date not in ticker.index:
+                continue  # skip non-trading days
+            if in_trade:
+                if current_date == exit_date:
+                    # Apply whole ticker trade return at exit
+                    trade = trades_df.loc[trades_df['Exit_Date'] == current_date].iloc[0]
+                    capital *= (1 + trade['Profit_and_loss_pct'] / 100.0)
+                    equity.append((current_date, capital))
+                    in_trade = False
+                else:
+                    # During trade window, equity stays flat
+                    equity.append((current_date, capital))
             else:
-                last_capital = initial_capital  # fallback for first entry
+                # Check if this is a ticker trade entry
+                entry_trades = trades_df.loc[trades_df['Signal_Date'] == current_date]
+                if not entry_trades.empty:
+                    trade = entry_trades.iloc[0]
+                    entry_date, exit_date = trade['Signal_Date'], trade['Exit_Date']
 
-            equity.append((entry_date, last_capital))
-            seen_dates.add(entry_date)
+                    # Apply SPY overnight return (close→open)
+                    capital *= (1 + base.loc[current_date, 'SPY_Return_overnight'])
+                    equity.append((current_date, round(capital,2)))
 
-        if exit_date not in seen_dates:
-            equity.append((exit_date, capital))
-            seen_dates.add(exit_date)
-        else:
-            # Overwrite value for existing date
-            equity = [(d, capital) if d == exit_date else (d, v) for d, v in equity]
+                    in_trade = True
+                else:
+                    # Normal SPY hold (close→close)
+                    capital *= (1 + base.loc[current_date, 'SPY_Return_close'])
+                    equity.append((current_date, round(capital,2)))
+        print(equity)
+        # Convert to Series
+        equity_series = pd.Series([v for _, v in equity],
+                                index=[d for d, _ in equity])
 
-        current_date = exit_date
+        if plot:
+            # SPY buy & hold
+            spy_equity = (1 + base['SPY_Return_close']).cumprod() * initial_capital
 
-    # After last trade, invest in SPY until end of data
-    spy_remaining = spy_data[spy_data.index > current_date]
-    for date, row in spy_remaining.iterrows():
-        capital *= (1 + row['SPY_Return'])
-        if date not in seen_dates:
-            equity.append((date, capital))
-            seen_dates.add(date)
+            plt.figure(figsize=(10, 5))
+            plt.plot(equity_series.index, equity_series.values, label= f"{BASE} + {TICKER} Gap Strategy")
+            plt.plot(spy_equity.index, spy_equity.values, label=f"{BASE} Buy & Hold")
+            plt.title("Equity Curve Comparison")
+            plt.xlabel("Date")
+            plt.ylabel("Portfolio Value ($)")
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.show()
 
-    # Sort by date
-    equity.sort(key=lambda x: x[0])
-    print(equity)
-    
-    # Convert to Series
-    equity_series = pd.Series(
-        data=[v for _, v in equity],
-        index=[d for d, _ in equity]
-    )
+        return equity_series
 
-    if plot:
-        # Plot SPY equity curve from same window
-        start = equity_series.index.min()
-        end = equity_series.index.max()
-        spy_window = spy_data.loc[start:end]
-        spy_equity = (1 + spy_window['SPY_Return']).cumprod() * initial_capital
-
-        plt.figure(figsize=(10, 5))
-        plt.plot(equity_series.index, equity_series.values, label=f"{TICKER} Gap Strategy + SPY Hold")
-        plt.plot(spy_equity.index, spy_equity.values, label="SPY Buy & Hold")
-        plt.title("Equity Curve Comparison")
-        plt.xlabel("Date")
-        plt.ylabel("Portfolio Value ($)")
-        plt.legend()
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-    return equity_series
 
 
 df = get_data(TICKER)
@@ -308,8 +300,6 @@ print(f"Avg PnL: {trades['Profit_and_loss_pct'].mean():.2f}%")
 print(f"Total PnL: {(1 + trades['Profit_and_loss_pct'] / 100).prod() - 1:.2%}")
 
 equity_curve = generate_equity_curve(trades, initial_capital=10000,plot=True)
-
-# stats_3_days = gap_win_rates(df, z=2.0, horizon=3)
 
 # for i in range(0,4):
 #     stats_i_days = gap_win_rates(df, z=2.0, horizon=i)
