@@ -43,7 +43,7 @@ def calculate_subset_metrics(valid: pd.DataFrame, mask: pd.Series, is_baseline: 
     if subset.empty:
         return {'count': 0, 'win_rate': np.nan, 'avg_ret_%': np.nan, 'p&L': np.nan}
 
-    # Always compare using Entry_Open → Future_Close
+    # A win is futuure close > entry open
     wins = (subset['Future_Close'] > subset['Entry_Open']).mean()
 
     avg_ret = subset['Ret_%'].mean()
@@ -93,22 +93,26 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
     d = d.sort_values('Signal_Date')
 
     # shift entry forward by 1 day
-    d['Prev_Close'] = round(d['Close'].shift(1),2)
-    d['Entry_Open'] = round(d['Open'].shift(-1),2)
-    d['Exit_Close'] = round(d['Close'].shift(-(horizon+1)),2)
-    d['Exit_Date'] = round(d['Signal_Date'].shift(-(horizon+1)),2)
+    d['Prev_Close'] = d['Close'].shift(1).round(2)
+    d['Entry_Open'] = d['Open'].shift(-1).round(2)
+    d['Exit_Close'] = d['Close'].shift(-(horizon+1)).round(2)
+    d['Exit_Date'] = d['Signal_Date'].shift(-(horizon+1)).round(2)
 
-    d['Trade_%'] = round((d['Exit_Close'] / d['Entry_Open'] - 1.0) * 100,2)
-    d['Profit_and_loss_pct'] = round((d['Exit_Close'] - d['Entry_Open']) / d['Entry_Open'] * 100,2)
+    d['Trade_%'] = ((d['Exit_Close'] / d['Entry_Open'] - 1.0) * 100).round(2)
+    d['Profit_and_loss_pct'] = (((d['Exit_Close'] - d['Entry_Open']) / d['Entry_Open']) * 100).round(2)
 
-   # add close range tuple (close[i-1], close[i])
-    d['Close_Range'] = list(zip(d['Close'].shift(1), d['Close']))
+    # add close range tuple (close[i-1], close[i])
+    d['Close_Range'] = list(zip(d['Close'].shift(1).round(2), d['Close'].round(2)))
 
     # SPY baseline aligned by dates
     spy = get_data(BASE)[['Date', 'Open', 'Close']].copy()
     spy['Date'] = pd.to_datetime(spy['Date'])
     spy = spy.sort_values('Date')
     spy = spy.rename(columns={'Open': 'Open_SPY', 'Close': 'Close_SPY'})
+
+    # Round to 2 decimal places
+    spy['Open_SPY'] = spy['Open_SPY'].round(2)
+    spy['Close_SPY'] = spy['Close_SPY'].round(2)
 
     merged = d.merge(
         spy[['Date', 'Open_SPY']],
@@ -126,12 +130,11 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
 
     merged = merged.drop(columns=['Date'])
 
-    merged['Profit_and_loss_baseline_pct'] = (
-        (merged['Close_SPY_at_exit'] - merged['Open_SPY_at_signal'])
-        / merged['Open_SPY_at_signal'] * 100
-    )
+    merged['Profit_and_loss_baseline_pct'] =round((merged['Close_SPY_at_exit'] - merged['Open_SPY_at_signal']) / merged['Open_SPY_at_signal'] * 100,2)
 
+    #Filter out normal days
     merged = merged[merged['Big_Gap'] != 0]
+    #Drop Nans 
     merged = merged.dropna(subset=['Exit_Close', 'Open_SPY_at_signal', 'Close_SPY_at_exit'])
 
     merged = merged.sort_values('Signal_Date').reset_index(drop=True)
@@ -221,7 +224,7 @@ def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float = 1000
     base['SPY_Return_close'] = base['Close'].pct_change().fillna(0)
     base['SPY_Return_overnight'] = base['Open'] / base['Close'].shift(1) - 1
     ticker[f'{TICKER}_Return_close'] = ticker['Close'].pct_change()
-
+    ticker[f'{TICKER}_Daily_gain'] = (ticker['Close'] / ticker['Open'] - 1).round(4)
     # Align dates
     all_days = base.index.union(ticker.index).sort_values()
     capital = initial_capital
@@ -236,6 +239,14 @@ def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float = 1000
             continue  # skip non-trading days
 
         print(f"\nDate: {current_date.date()}, in_trade={in_trade}, capital={capital:.2f}")
+
+        first_day_of_trade = trades_df.loc[trades_df['Signal_Date']+pd.Timedelta(days=1) ==  current_date]
+
+        # if in_trade and not first_day_of_trade.empty:
+        #     daily_ret = ticker.loc[current_date, f'{TICKER}_Daily_gain']
+        #     capital *= (1 + daily_ret)
+        #     print(f"  In trade: applied {TICKER} return {daily_ret:.4f}, new capital={capital:.2f}")
+        #     equity.append((current_date, capital))
 
         if in_trade:
             # Apply ticker daily return while trade is active
@@ -264,13 +275,13 @@ def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float = 1000
                 entry_trades = trades_df.loc[trades_df['Signal_Date'] == current_date]
                 if not entry_trades.empty:
                     trade = entry_trades.iloc[0]
-                    _, exit_date = trade['Signal_Date'], trade['Exit_Date']
+                    entry_date, exit_date = trade['Signal_Date'], trade['Exit_Date']
 
                     # Apply SPY overnight return (close→open) before switching into ticker
                     overnight_ret = base.loc[current_date, 'SPY_Return_overnight']
                     capital *= (1 + overnight_ret)
                     print(f"  Entry signal: SPY overnight return {overnight_ret:.4f}, new capital={capital:.2f}")
-                    print(f"  >>> ENTER trade {TICKER} until {exit_date.date()}")
+                    print(f"  >>> ENTER trade {TICKER} on the next open after {entry_date} until {exit_date.date()}")
 
                     equity.append((current_date, round(capital, 2)))
                     in_trade = True
@@ -281,7 +292,7 @@ def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float = 1000
                     print(f"  Hold SPY: applied return {daily_ret:.4f}, new capital={capital:.2f}")
 
                     equity.append((current_date, round(capital, 2)))
-
+    
     # Convert to Series
     equity_series = pd.Series([v for _, v in equity],
                               index=[d for d, _ in equity])
@@ -321,5 +332,5 @@ equity_curve = generate_equity_curve(trades, initial_capital=10000,plot=True)
 #     print("Win rate for baseline", stats_i_days["baseline_all_days"]["win_rate"])
 #     print("P&L for big gap up", stats_i_days["big_gap_up"]["p&L"])
 #     print("P&L for big gap down", stats_i_days["big_gap_down"]["p&L"])
-
-# plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=3)
+df = get_data(BASE)
+plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=3)

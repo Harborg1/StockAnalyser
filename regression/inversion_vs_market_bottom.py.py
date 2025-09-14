@@ -82,6 +82,7 @@ crisis_data = [
 def get_spread(start, end, plot=False):
     spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
     spread = spread.loc[start:end]
+    print(spread.tail(20))
     spread = spread.resample("D").interpolate(method="linear")
     spread.index = pd.to_datetime(spread.index)
 
@@ -189,18 +190,18 @@ def plot_crisis_data(crisis_data, download = False):
         fig.savefig(filename)
 
 
-plot_crisis_data(crisis_data=crisis_data)
+# plot_crisis_data(crisis_data=crisis_data)
 
-df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
+# df_results = calculate_spy_drop(crisis_data, output_path="csv_files/spy_drops.csv")
 
 # print(df_results)
 
-# get_spread("2025-01-07","2025-08-01",plot=True)
+get_spread("2025-01-07","2025-09-14",plot=True)
 
-# spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
+spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
 
-# start = spread.index.min()
+start = spread.index.min()
 
-# end = spread.index.max()
+end = spread.index.max()
 
-# get_spread(start=start,end=end, plot=True)
+get_spread(start=start,end=end, plot=True)
