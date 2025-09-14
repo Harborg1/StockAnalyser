@@ -1,3 +1,9 @@
+
+"""
+Tools for analyzing and backtesting a mean reversion trading strategy based on large price gaps.
+Includes functions for data retrieval, signal generation, trade metrics calculation, and strategy visualization.
+"""
+
 import yfinance as yf
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -9,6 +15,8 @@ TICKER = 'NVO'
 INTERVAL = '1d'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
 LOOKBACK = 365
+
+
 def get_data(ticker:str, lookback=LOOKBACK, interval=INTERVAL):
     df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD,progress=False)
     
@@ -38,7 +46,7 @@ def add_big_gap_moves(df: pd.DataFrame, z: float) -> pd.DataFrame:
 
     return df
 
-def calculate_subset_metrics(valid: pd.DataFrame, mask: pd.Series, is_baseline: bool) -> dict:
+def calculate_subset_metrics(valid: pd.DataFrame, mask: pd.Series) -> dict:
     subset = valid.loc[mask]
     if subset.empty:
         return {'count': 0, 'win_rate': np.nan, 'avg_ret_%': np.nan, 'p&L': np.nan}
@@ -72,11 +80,11 @@ def gap_win_rates(df: pd.DataFrame, z: float, horizon: int) -> dict:
 
     valid = d.dropna(subset=['Future_Close'])
     print("Horizon:",horizon)
-    res_up = calculate_subset_metrics(valid, valid['Big_Gap'] == 1,False)
+    res_up = calculate_subset_metrics(valid, valid['Big_Gap'] == 1)
     print("res_up", res_up["win_rate"])
-    res_down = calculate_subset_metrics(valid, valid['Big_Gap'] == -1, False)
+    res_down = calculate_subset_metrics(valid, valid['Big_Gap'] == -1)
     print("res_down",res_down["win_rate"])
-    base = calculate_subset_metrics(valid, valid['Big_Gap'].isin([-1, 0, 1]), True)
+    base = calculate_subset_metrics(valid, valid['Big_Gap'].isin([-1, 0, 1]))
     print("base", base["win_rate"])
 
     return {
@@ -241,14 +249,14 @@ def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float = 1000
         print(f"\nDate: {current_date.date()}, in_trade={in_trade}, capital={capital:.2f}")
 
         first_day_of_trade = trades_df.loc[trades_df['Signal_Date']+pd.Timedelta(days=1) ==  current_date]
+        # Buy at open day after the signal date
+        if in_trade and not first_day_of_trade.empty:
+            daily_ret = ticker.loc[current_date, f'{TICKER}_Daily_gain']
+            capital *= (1 + daily_ret)
+            print(f"  In trade: applied {TICKER} return {daily_ret:.4f}, new capital={capital:.2f}")
+            equity.append((current_date, capital))
 
-        # if in_trade and not first_day_of_trade.empty:
-        #     daily_ret = ticker.loc[current_date, f'{TICKER}_Daily_gain']
-        #     capital *= (1 + daily_ret)
-        #     print(f"  In trade: applied {TICKER} return {daily_ret:.4f}, new capital={capital:.2f}")
-        #     equity.append((current_date, capital))
-
-        if in_trade:
+        elif in_trade:
             # Apply ticker daily return while trade is active
             daily_ret = ticker.loc[current_date, f'{TICKER}_Return_close']
             capital *= (1 + daily_ret)

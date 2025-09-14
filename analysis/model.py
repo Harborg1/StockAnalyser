@@ -1,4 +1,11 @@
 import yfinance as yf
+
+
+"""This script implements a stock analysis and trading strategy backtesting framework. 
+It supports two models ML: Logistic Regression ("logit") and XGBoost ("xgb"), with performance 
+evaluated using metrics like AUC, validation PnL, and backtesting results."""
+
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -7,6 +14,8 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc, roc_auc_score
 from xgboost import XGBClassifier
 from sklearn.linear_model import LogisticRegression
+
+
 
 TICKER = 'SPY'
 INTERVAL = '1h'
@@ -24,7 +33,6 @@ RSI_OVERSOLD = 30
 BB_LEN = 20
 DEVS = 2
 CUTOFF = 0.5
-TRAIN_SIZE = .7
 
 LOOKBACK = 10000
 
@@ -224,15 +232,12 @@ def train_val_test_split(df, train_size=0.6, val_size=0.2):
 
     return train.reset_index(drop=True), val.reset_index(drop=True), test.reset_index(drop=True)
 
-def backtest_strategy(
-    df,
-    shift,
+def backtest_strategy(df,shift,
     prob_threshold,
     prob_col="Score",
     original_df=None,
     fee_bps_per_side=1.0,
     slippage_bps_per_side=0.5,
-
     initial_capital=10000.0,
     require_after_cost=True,
 ):
@@ -389,7 +394,8 @@ def find_best_shift_by_pnl(
             val_trading_df = val_with_target.loc[X_val.index].copy()
             val_trading_df["Predicted_Prob"] = y_val_prob
             val_trading_df["Buy_Signal"] = val_trading_df["Predicted_Prob"] > prob_threshold
-            val_trading_df["Exit_Price"] = val_trading_df["Close"].shift(-shift)
+            val_trading_df["Entry_Price"] = val_trading_df["Close"].shift(-1)
+            val_trading_df["Exit_Price"]  = val_trading_df["Close"].shift(-(shift))
 
             # Filter rows with buy signal and valid exit price
             trades = val_trading_df[val_trading_df["Buy_Signal"]].dropna(subset=["Exit_Price"]).copy()
@@ -432,8 +438,6 @@ def find_best_shift_by_pnl(
         return None
 
     return pd.DataFrame(results).sort_values(by="ValPnL", ascending=False).reset_index(drop=True)
-
-
 
 
 def run_shift_range_backtest(train, val, test, shift_range=SHIFT_RANGE, features=STRATEGY, model=MODEL, cutoff=CUTOFF):

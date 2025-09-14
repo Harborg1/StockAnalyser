@@ -2,6 +2,12 @@ import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 
+"""This script compares two trading strategies against the buy-and-hold approach for a given stock.
+    The strategies are:
+    1. Buy the Dip, Sell the Rip: Buys when the stock price drops by 10% or more over 3 trading days and sells after a 10% gain or stop-loss.
+    2. Dollar Cost Averaging (DCA): Invests a fixed amount at regular intervals regardless of price.
+    The performance of each strategy is evaluated and plotted.
+"""
 START_DATE = "2024-01-01"
 END_DATE   = "2025-08-01"
 TICKER     = "CLSK"

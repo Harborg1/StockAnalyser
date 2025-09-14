@@ -543,8 +543,8 @@ class web_scraper:
                         val_btc = text
                         break
                 if not val_btc:
-                    raise ValueError("⚠️ Failed to find BTC value at index 80.")
-
+                    raise ValueError("⚠️ Failed to find BTC value at index 76.")
+                
                 # Prepare data
                 data = {
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -590,10 +590,10 @@ class web_scraper:
 if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
+    scraper.scrape_useful_data()
     # scraper.scrape_earnings()
     #scraper.scrape_bitcoin_address()
     #scraper.scrape_coinglass_change()
-    scraper.scrape_useful_data()
     # print(f"Fear & Greed Index: {fear_greed_value}")
     #scraper.scrape_bitcoin_address_all_time()
     #print(scraper.calculate_total_btc(scraper.bitcoin_data_2024))
