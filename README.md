@@ -1,6 +1,7 @@
 # 📊 Stock Market Monthly Data Analysis App
 
 This application provides an interactive UI dashboard that can show stock performance data, bitcoin exchange data and portfolio distribtion.
+
 It also has an analysis folder which includes a realistic ML trading model, mean-reversion strategy, backtesting and study of yield curve inversions.
 ## Features
 - 📅 View daily performance of selected stocks on a monthly calendar view.
