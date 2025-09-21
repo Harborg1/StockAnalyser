@@ -15,6 +15,7 @@ from datetime import datetime
 import time
 from selenium.webdriver.support import expected_conditions as EC
 import platform
+
 class TextPresentInElement(object):
     def __init__(self, locator):
         self.locator = locator
@@ -38,10 +39,11 @@ class web_scraper:
         self.driver = None
         self.bitcoin_data = "json_folder\\bitcoin_address_data_all_time.json"
         self.bitcoin_data_2024 = "json_folder\\bitcoin_address_data_2024.json"
+        self.jobs_release ="json_folder\\jobs_release_dates.json"
 
     def setup_driver(self):
         options = Options()
-        options.add_argument("--headless=chrome")
+        #options.add_argument("--headless=chrome")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -109,6 +111,72 @@ class web_scraper:
             print("No new CPI dates found")
 
         return new_cpi
+    
+    def scrape_jobs_release_dates(self, output_path):
+        """Scrape Employment Situation release dates from the US bureau of labor statistics.
+        Saves them to the JSON file at output_path."""
+
+        # Ensure folder exists
+        json_folder = os.path.dirname(output_path) or "."
+        os.makedirs(json_folder, exist_ok=True)
+
+        url = "https://www.bls.gov/schedule/news_release/empsit.htm"
+        driver = self.setup_driver()
+        driver.get(url)
+
+        try:
+            # Wait for the main content table to load
+            WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.ID, "main-content-td"))
+            )
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+        except Exception as e:
+            print(f"Error loading Jobs Release page: {e}")
+            driver.quit()
+            return []
+        finally:
+            driver.quit()
+
+        # Narrow down to the main-content-td
+        content_td = soup.find("td", {"id": "main-content-td"})
+        if not content_td:
+            print("Could not find main-content-td")
+            return []
+
+        # Now find the release schedule table inside
+        table = content_td.find("table")
+        if not table:
+            print("Could not find release schedule table")
+            return []
+
+        rows = table.find_all("tr")[1:]  # skip header
+        data = []
+        for r in rows:
+            cols = [c.get_text(strip=True) for c in r.find_all("td")]
+            if len(cols) >= 3:
+                reference_month, release_date, release_time = cols[:3]
+
+                # Parse release_date like "Jan. 10, 2025"
+                try:
+                    dt = datetime.strptime(release_date, "%b. %d, %Y")
+                    release_date_iso = dt.strftime("%Y-%m-%d")
+                except ValueError:
+                    # fallback if it doesn't match
+                    release_date_iso = release_date  
+
+                data.append({
+                    "reference_month": reference_month,
+                    "release_date": release_date_iso,
+                    "release_time": release_time
+                })
+
+        # Save to JSON
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+
+        print(f"Saved {len(data)} records to {output_path}")
+        return data
+
 
         
     def scrape_earnings(self):
@@ -590,7 +658,9 @@ class web_scraper:
 if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
+    #scraper.scrape_articles()
     scraper.scrape_useful_data()
+    #scraper.scrape_jobs_release_dates(scraper.jobs_release)
     # scraper.scrape_earnings()
     #scraper.scrape_bitcoin_address()
     #scraper.scrape_coinglass_change()

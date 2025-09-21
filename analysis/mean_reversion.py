@@ -10,12 +10,11 @@ import pandas as pd
 import numpy as np
 # Get previous version of file from the 11/9/2025 if you want:)
 output_path = "csv_files/mean_reversion_results.csv"
-BASE = "^GSPC"
+BASE = "SPY"
 TICKER = 'NVO'
 INTERVAL = '1d'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
 LOOKBACK = 365
-
 
 def get_data(ticker:str, lookback=LOOKBACK, interval=INTERVAL):
     df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD,progress=False)
@@ -30,6 +29,7 @@ def get_data(ticker:str, lookback=LOOKBACK, interval=INTERVAL):
 
     subset = df.iloc[-lookback:, :]
     return subset.dropna()
+
 def add_big_gap_moves(df: pd.DataFrame, z: float) -> pd.DataFrame:
     """
     Adds columns for big gap signals based on Close_Change.
@@ -38,6 +38,7 @@ def add_big_gap_moves(df: pd.DataFrame, z: float) -> pd.DataFrame:
     df = df.copy()
     close_change_avg = df['Close_Change'].mean()
     close_change_std = df['Close_Change'].std()
+
 
     df['Big_Gap'] = np.where(
         df['Close_Change'] > close_change_avg + (close_change_std * z), 1,
@@ -50,10 +51,10 @@ def calculate_subset_metrics(valid: pd.DataFrame, mask: pd.Series) -> dict:
     subset = valid.loc[mask]
     if subset.empty:
         return {'count': 0, 'win_rate': np.nan, 'avg_ret_%': np.nan, 'p&L': np.nan}
-
+    
     # A win is futuure close > entry open
     wins = (subset['Future_Close'] > subset['Entry_Open']).mean()
-
+    
     avg_ret = subset['Ret_%'].mean()
     profit = subset['p&L'].sum()
     return {
@@ -84,7 +85,8 @@ def gap_win_rates(df: pd.DataFrame, z: float, horizon: int) -> dict:
     print("res_up", res_up["win_rate"])
     res_down = calculate_subset_metrics(valid, valid['Big_Gap'] == -1)
     print("res_down",res_down["win_rate"])
-    base = calculate_subset_metrics(valid, valid['Big_Gap'].isin([-1, 0, 1]))
+    base = calculate_subset_metrics(valid, valid['Big_Gap']==0)
+
     print("base", base["win_rate"])
 
     return {
@@ -154,6 +156,7 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
         'Big_Gap', 'Profit_and_loss_pct',
         'Open_SPY_at_signal', 'Close_SPY_at_exit', 'Profit_and_loss_baseline_pct'
     ]]
+
 
     # optional: drop overlapping trades
     t = merged.copy()
@@ -342,3 +345,4 @@ equity_curve = generate_equity_curve(trades, initial_capital=10000,plot=True)
 #     print("P&L for big gap down", stats_i_days["big_gap_down"]["p&L"])
 df = get_data(BASE)
 plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=3)
+

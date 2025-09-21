@@ -82,6 +82,8 @@ class stock_reader(MarketReaderBase):
         cpi_data_all = self.get_json_data("cpi.json")
 
         fomc_data_all = self.get_json_data("fomc.json")
+
+        jobs_data_all = self.get_json_data("jobs_release_dates.json")
         
         cpi_dates = {
             pd.Timestamp(item["date"]) for item in cpi_data_all
@@ -89,6 +91,10 @@ class stock_reader(MarketReaderBase):
 
         fomc_dates  = {
             pd.Timestamp(item["date"]) for item in fomc_data_all
+        }
+
+        jobs_dates  = {
+            pd.Timestamp(item["release_date"]) for item in jobs_data_all
         }
 
         fig, ax = plt.subplots(figsize=(9, 6))  # Reduce height to save space
@@ -194,12 +200,19 @@ class stock_reader(MarketReaderBase):
                         # Increment the index only for valid trading days
                         idx += 1
 
+
+                elif current_date in jobs_dates:
+                    day_rect.set_facecolor("yellow")
+                    ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
+                    ax.text(day_idx + 0.5, -week_idx - 0.5, "Earnings date",
+                            ha='center', va='center', fontsize=7, weight='bold', color='black')
+                    
                 elif current_date in earnings_dates:
                     day_rect.set_facecolor("purple")
                     ax.text(day_idx + 0.5, -week_idx - 0.3, str(day), ha='center', va='center', fontsize=10, weight='bold')
                     ax.text(day_idx + 0.5, -week_idx - 0.5, "Earnings date",
                             ha='center', va='center', fontsize=7, weight='bold', color='black')
-
+                    
                 elif current_date in stock_market_holidays_list:
                     # Place a grey square for the holiday
                     day_rect.set_facecolor("grey")
@@ -262,6 +275,8 @@ class stock_reader(MarketReaderBase):
     
    
     def get_spy_distance_from_ath(self) -> float | str:
+        """This method returns the percentage difference between the latest close price of the SPY
+           and the all time high closing price"""
         try:
             # Download all historical data for SPY
             spy_data = yf.download("SPY", progress=False, auto_adjust=False)
@@ -280,6 +295,3 @@ class stock_reader(MarketReaderBase):
             return percentage_below_ath  # Negative means below ATH
         except Exception as e:
             return f"Error: {str(e)}"
-
-            
-        

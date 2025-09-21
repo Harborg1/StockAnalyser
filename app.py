@@ -170,6 +170,7 @@ class App:
         button_frame = ttk.Frame(self.main_frame)
         button_frame.grid(row=3, column=0, sticky="w", pady=10)
         
+
         self.show_button = self.create_styled_button(
             button_frame,
             "Show Market Performance",
@@ -367,7 +368,7 @@ class App:
         # Portfolio data
         portfolio: Dict[str, Dict[str, float]] = {
             stocks[0]: {
-                "shares":62,
+                "shares":67,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -375,7 +376,7 @@ class App:
                 ))
             },
             stocks[1]: {
-                "shares": 132,
+                "shares": 115,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -384,7 +385,7 @@ class App:
                 
             },
             stocks[2]: {
-                "shares": 600,
+                "shares": 720,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -402,7 +403,7 @@ class App:
 
              stocks[4]: {
                 "shares": 1,
-                "price": 980/usd_dkk
+                "price": 160/usd_dkk
             }
             }
         
@@ -486,7 +487,7 @@ class App:
         except Exception as e:
             print(f"Unexpected error while getting news links: {e}")
             return []
-        
+
 
     # Create styled links
     def create_link(self,parent, text, url):
@@ -673,7 +674,7 @@ class App:
         2. Scrapes articles if the stock is CLSK
         3. Scrapes earnings data for any stock
         """
-        self.stock_entry: str = str(self.stock_entry.get())
+        self.stock_entry = str(self.stock_entry.get())
         self.web_scraper_instance = web_scraper(self.stock_entry)
         # Only scrape articles for CLSK
         if self.stock_entry == "CLSK":
