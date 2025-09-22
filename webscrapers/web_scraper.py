@@ -43,7 +43,7 @@ class web_scraper:
 
     def setup_driver(self):
         options = Options()
-        #options.add_argument("--headless=chrome")
+        options.add_argument("--headless=chrome")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -572,7 +572,6 @@ class web_scraper:
                 except Exception:
                          print("No consent popup found")
 
-
                 # Get 24h percentage change             
                 value_change = WebDriverWait(self.driver, 10).until(
                             EC.presence_of_all_elements_located((
@@ -644,7 +643,6 @@ class web_scraper:
     def scrape_useful_data(self):
         from datetime import datetime
         def log(msg): print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
-
         self.driver = self.setup_driver()
         try:
             log("🔍 Starting Coinglass scrape...")
