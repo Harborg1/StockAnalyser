@@ -43,17 +43,17 @@ class web_scraper:
 
     def setup_driver(self):
         options = Options()
-        options.add_argument("--headless=chrome")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0 Safari/537.36")
-
+        
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:
             path = "/usr/bin/chromedriver"
+            options.add_argument("--headless=chrome")
 
         service = Service(executable_path=path)
         self.driver = webdriver.Chrome(service=service, options=options)

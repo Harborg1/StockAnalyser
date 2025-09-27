@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
     The performance of each strategy is evaluated and plotted.
 """
 START_DATE = "2024-01-01"
-END_DATE   = "2025-08-01"
+END_DATE   = "2025-09-27"
 TICKER     = "CLSK"
+
 
 def get_data(ticker=TICKER, start=START_DATE, end=END_DATE):
     data = yf.download(ticker, start=start, end=end, auto_adjust=False)
@@ -20,25 +21,23 @@ def get_data(ticker=TICKER, start=START_DATE, end=END_DATE):
     data["3Day_Change"] = data["Close"].pct_change(periods=3) * 100
     return data
 
-def backtest_buy_down_sell_up(
+def backtest_strategy(
     data,
-    buy_thresh=-10,
-    sell_gain=10,
+    buy_thresh,
+    sell_gain,
     initial_capital=10000,
     cooldown=3,
     stop_loss=-10,
     fee_bps_per_side=10,   # 0.1% cost
     slippage_bps_per_side=5  # 0.05% slippage
 ):
-    
+
     in_position = False
     capital = initial_capital
     shares = 0
     trades = []
     buy_price = 0
     last_trade_index = -cooldown
-    last_sell_index = -1000
-
     # For equity curve tracking
     portfolio_values = []
 
@@ -69,11 +68,10 @@ def backtest_buy_down_sell_up(
                 })
                 in_position = False
                 last_trade_index = i
-                last_sell_index = i
                 shares = 0
 
         # --- Buy logic ---
-        elif (change_3day <= buy_thresh and i - last_trade_index >= cooldown and i - last_sell_index >= cooldown):
+        elif (change_3day <= buy_thresh and i - last_trade_index >= cooldown):
             shares = capital // (next_open * (1 + rt_cost_pct))
             if shares > 0:
                 cost = shares * next_open * (1 + rt_cost_pct)
@@ -95,6 +93,7 @@ def backtest_buy_down_sell_up(
     portfolio_values.append((data.index[-1], final_value))
 
     return trades, final_value, pd.DataFrame(portfolio_values, columns=["Date", "Portfolio"])
+
 
 def DCA_strategy(
     data,
@@ -182,39 +181,86 @@ def summarize_trades(trades, start_capital, data=None):
         "Final Capital ($)": float(round(final_capital, 2))
     }
 
-
 start_capital = 10000
 data = get_data()
 
 # Run "buy the dip, sell the rip" strategy
-trades_bsr, final_cap_bsr, equity_curve_bsr = backtest_buy_down_sell_up(
-    data, initial_capital=start_capital
+trades_bsr, final_cap_bsr, equity_curve_bsr = backtest_strategy(
+    data, buy_thresh=-10,sell_gain=10, initial_capital=start_capital
 )
+
+# Make dataframe og transactions 
+trades_bsr_df = pd.DataFrame(trades_bsr)
+print("\nAlle handler (Buy Down / Sell Up):")
+print(trades_bsr_df)
+
+
+# Run FOMO strategy
+trades_FOMO, final_cap_bsr, equity_curve_FOMO = backtest_strategy(
+    data, buy_thresh=10,sell_gain=-10, initial_capital=start_capital
+)
+
+
 
 # Run DCA strategy
 trades_dca, final_cap_dca, equity_curve_dca = DCA_strategy(
     data, initial_capital=start_capital
 )
 
+
+# Buy & Hold strategy (hele kapitalen investeret fra start)
+shares_bh = start_capital / data.iloc[0]["Close"]
+equity_curve_bh = pd.DataFrame({
+    "Date": data.index,
+    "Portfolio": shares_bh * data["Close"]
+})
+
 # Summaries
 summary_bsr = summarize_trades(trades_bsr, start_capital, data)
+
+summary_FOMO = summarize_trades(trades_FOMO, start_capital, data)
+
 summary_dca = summarize_trades(trades_dca, start_capital, data)
 
 print("Buy-Sell-Rip Summary:")
 print(summary_bsr)
+print("FOMO summary")
+print(summary_FOMO)
 print("\nDCA Summary:")
 print(summary_dca)
 
-# Buy & Hold benchmark
-start_price = data.iloc[0]["Close"]
-end_price = data.iloc[-1]["Close"]
-buy_and_hold_value = start_capital * (end_price / start_price)
+# ==== Align all equity curves to daily data ====
+equity_curve_bsr = (
+    equity_curve_bsr.drop_duplicates("Date")
+    .set_index("Date")
+    .reindex(data.index, method="ffill")
+)
 
-# ==== Plot both strategies ====
+
+equity_curve_FOMO = (
+    equity_curve_FOMO.drop_duplicates("Date")
+    .set_index("Date")
+    .reindex(data.index, method="ffill")
+)
+
+
+equity_curve_dca = (
+    equity_curve_dca.drop_duplicates("Date")
+    .set_index("Date")
+    .reindex(data.index, method="ffill")
+)
+
+equity_curve_bh = (
+    equity_curve_bh.drop_duplicates("Date")
+    .set_index("Date")
+)
+
+# ==== Plot all equity curves ====
 plt.figure(figsize=(12, 6))
-plt.plot(equity_curve_bsr["Date"], equity_curve_bsr["Portfolio"], label="Buy Down / Sell Up")
-plt.plot(equity_curve_dca["Date"], equity_curve_dca["Portfolio"], label="DCA")
-plt.axhline(y=buy_and_hold_value, color="r", linestyle="--", label="Buy & Hold Final Value")
+plt.plot(equity_curve_bsr.index, equity_curve_bsr["Portfolio"], label="Buy Down / Sell Up")
+plt.plot(equity_curve_FOMO.index, equity_curve_FOMO["Portfolio"], label="Buy Up / Sell Down")
+#plt.plot(equity_curve_dca.index, equity_curve_dca["Portfolio"], label="DCA")
+plt.plot(equity_curve_bh.index, equity_curve_bh["Portfolio"], label="Buy & Hold")
 
 plt.title(f"{TICKER} Strategies vs Buy & Hold\n({START_DATE} to {END_DATE})")
 plt.xlabel("Date")
@@ -224,3 +270,4 @@ plt.grid(True)
 plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
+

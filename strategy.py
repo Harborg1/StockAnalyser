@@ -39,7 +39,7 @@ class Strategy(MarketReaderBase):
             df = yf.download(stock, period="1y", interval="1d", progress=False, auto_adjust=False).dropna()
             if df.empty:
                 return {}
-
+            
             close = df["Close"][stock] if isinstance(df.columns, pd.MultiIndex) else df["Close"]
 
             # ATR(14)
@@ -138,9 +138,11 @@ Analyze the stock data for {stock} and recommend a trading strategy (buy, hold, 
 1. Recommend an action: **buy**, **hold**, or **sell**.
 2. Suggest a **stop-loss** level to minimize risk.
 3. Suggest a **take-profit** level or range for today.
-4. Suggest how much of the total position to take profit at that level (e.g., 30%, 50%), and whether to **leave a portion to run** with a trailing stop.
-5. Justify each suggestion briefly using the data and principles of technical analysis.
+4. Make sure that the stop-loss level is lower than the take-profit-level for the given stock.
+5. Suggest how much of the total position to take profit at that level (e.g., 30%, 50%), and whether to **leave a portion to run** with a trailing stop.
+6. Justify each suggestion briefly using the data and principles of technical analysis.
 """
+
         }
     ]
 
@@ -171,5 +173,5 @@ if __name__ == "__main__":
     strategy = ask_openai_for_strategy(client, stock, closes, indicators, pre_market)
 
     body = f"""📈 AI-Generated Trading Strategy for {stock}\n\n{strategy}"""
-    send_email(f"📊 Daily Strategy for {stock}", body, sender_email, receiver_email, password)
-    print("✅ Strategy email sent.")
+    send_email(f"Daily Strategy for {stock}", body, sender_email, receiver_email, password)
+    print("Strategy email sent.")
