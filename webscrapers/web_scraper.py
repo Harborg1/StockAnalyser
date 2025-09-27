@@ -658,8 +658,7 @@ if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     #scraper.scrape_articles()
-    #scraper.scrape_useful_data()
-    scraper.scrape_articles()
+    scraper.scrape_useful_data()
     #scraper.scrape_jobs_release_dates(scraper.jobs_release)
     # scraper.scrape_earnings()
     #scraper.scrape_bitcoin_address()
