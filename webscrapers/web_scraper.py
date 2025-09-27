@@ -48,7 +48,7 @@ class web_scraper:
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0 Safari/537.36")
-        
+
         if platform.system() == "Windows":
             path = "chromedriver.exe"
         else:
@@ -231,11 +231,10 @@ class web_scraper:
         return updated_earnings + new_earnings
     
     def scrape_articles(self):
-
         """Function to scrape articles and return new links."""
         driver = self.setup_driver()
 
-        url = 'https://investors.cleanspark.com/news/'
+        url = "https://investors.cleanspark.com/news/"
         driver.get(url)
 
         json_file_path = "json_folder\\article_links.json"
@@ -249,38 +248,40 @@ class web_scraper:
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/news/news-details/']"))
             )
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            soup = BeautifulSoup(driver.page_source, "html.parser")
         finally:
             pass
-        
+
         articles = soup.select("a[href*='/news/news-details/']")
         new_links = []
 
         for article in articles:
             title = article.get_text(strip=True)
-            link = article['href']
+            link = article["href"]
             if not link.startswith("http"):
                 link = "https://investors.cleanspark.com" + link
-                
-            if any(item['link'] == link for item in existing_links):
+
+            if any(item["link"] == link for item in existing_links):
                 continue
 
             driver.get(link)
             try:
                 WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.ID, "_ctrl0_ctl49_spanDate"))
+                    EC.presence_of_element_located((By.ID, "_ctrl0_ctl55_divNewsDetailsDateTime"))
                 )
-                article_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                date_element = article_soup.find("span", id="_ctrl0_ctl49_spanDate")
-                article_date = date_element.get_text(strip=True) if date_element else "Date not found"
+                article_soup = BeautifulSoup(driver.page_source, "html.parser")
+                date_element = article_soup.find("div", id="_ctrl0_ctl55_divNewsDetailsDateTime")
+                article_date = date_element.get_text(strip=True) if date_element else None
             except Exception as e:
-                article_date = f"Error retrieving date: {e}"
-
-            new_links.append({
-                "title": title,
-                "link": link,
-                "date": article_date
-            })
+                print(f"Error retrieving date for {link}: {e}")
+                article_date = None  # 👈 important change here
+            new_links.append(
+                {
+                    "title": title,
+                    "link": link,
+                    "date": article_date,
+                }
+            )
 
         driver.quit()
 
@@ -289,11 +290,11 @@ class web_scraper:
                 json.dump(existing_links + new_links, file, indent=4, ensure_ascii=False)
             print(f"Added {len(new_links)} new article(s)")
         else:
-
             print("No recent news")
 
         return new_links
-    
+
+
 
     def scrape_fear_greed_index(self, url):
         if self.driver is None:
@@ -657,7 +658,8 @@ if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     #scraper.scrape_articles()
-    scraper.scrape_useful_data()
+    #scraper.scrape_useful_data()
+    scraper.scrape_articles()
     #scraper.scrape_jobs_release_dates(scraper.jobs_release)
     # scraper.scrape_earnings()
     #scraper.scrape_bitcoin_address()

@@ -368,7 +368,7 @@ class App:
         # Portfolio data
         portfolio: Dict[str, Dict[str, float]] = {
             stocks[0]: {
-                "shares":67,
+                "shares":69,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -376,7 +376,7 @@ class App:
                 ))
             },
             stocks[1]: {
-                "shares": 115,
+                "shares": 137,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -385,7 +385,7 @@ class App:
                 
             },
             stocks[2]: {
-                "shares": 720,
+                "shares": 419,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -403,7 +403,7 @@ class App:
 
              stocks[4]: {
                 "shares": 1,
-                "price": 160/usd_dkk
+                "price": 12/usd_dkk
             }
             }
         
