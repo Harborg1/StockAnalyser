@@ -359,7 +359,7 @@ class App:
         )
         back_button.grid(row=1, column=0, sticky="w", padx=5, pady=5)
         
-        stocks: List[str] = ["TSLA", "NVDA", "CLSK", "DKIGI.CO", "CASH"]
+        stocks: List[str] = ["TSLA", "NVDA", "DKIGI.CO", "CASH"]
         usd_dkk: float = float(self.stock_reader_instance.get_last_trading_day_close(
             datetime.now().year,
             datetime.now().month,
@@ -368,7 +368,7 @@ class App:
         # Portfolio data
         portfolio: Dict[str, Dict[str, float]] = {
             stocks[0]: {
-                "shares":69,
+                "shares":80,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -376,7 +376,7 @@ class App:
                 ))
             },
             stocks[1]: {
-                "shares": 137,
+                "shares": 110,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
@@ -385,30 +385,23 @@ class App:
                 
             },
             stocks[2]: {
-                "shares": 419,
-                "price": float(self.stock_reader_instance.get_last_trading_day_close(
-                    datetime.now().year,
-                    datetime.now().month,
-                    stocks[2]
-                ))
-            },
-            stocks[3]: {
                 "shares": 993,
                 "price": float(self.stock_reader_instance.get_last_trading_day_close(
                     datetime.now().year,
                     datetime.now().month,
-                    stocks[3]
+                    stocks[2]
                 )) / usd_dkk
             },
 
-             stocks[4]: {
+             stocks[3]: {
                 "shares": 1,
-                "price": 12/usd_dkk
+                "price":250/usd_dkk
             }
             }
+
         
         # Prepare data for the pie chart
-        labels: List[str] = ["TSLA", "NVDA", "CLSK", "ETF", "CASH"]
+        labels: List[str] = ["TSLA", "NVDA", "ETF", "CASH"]
         sizes: List[float] = [stock["shares"] * stock["price"] for stock in portfolio.values()]
         # Define a larger color palette
         colors = [
