@@ -597,22 +597,23 @@ class web_scraper:
                 )
                 self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroll_container)
                 time.sleep(1.5)
-
-                # Find BTC total at index 76
-                val_btc = None
-                btc_elements = self.driver.find_elements(
-                    By.XPATH,
-                    "//td[@class='ant-table-cell' and @style='text-align: right;']/div"
-                )
-
-                for j, el in enumerate(btc_elements):
-                    text = el.text.strip()
-                    if text and j == 76:
-                        val_btc = text
-                        break
-                if not val_btc:
-                    raise ValueError("⚠️ Failed to find BTC value at index 76.")
                 
+                # Try to find the total row specifically
+                try:
+                    total_row = WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, "//tr[td[contains(., 'Total')]]"))
+                    )
+
+                    # Find the right-aligned numeric cell (the total BTC value)
+                    val_btc = total_row.find_element(
+                        By.XPATH, ".//td[@class='ant-table-cell' and @style='text-align: right;'][1]/div"
+                    ).text.strip()
+
+                    print("Total BTC value:", val_btc)
+
+                except Exception as e:
+                    print(" Could not find total BTC row:", e)
+
                 # Prepare data
                 data = {
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
