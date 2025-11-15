@@ -883,5 +883,10 @@
         "timestamp": "2025-11-14 10:49:47",
         "Volume Percentage Change (24h)": "+26.49%",
         "Total bitcoin": "2,123,874.37"
+    },
+    {
+        "timestamp": "2025-11-15 10:46:28",
+        "Volume Percentage Change (24h)": "-24.98%",
+        "Total bitcoin": "2,123,903.63"
     }
 ]
