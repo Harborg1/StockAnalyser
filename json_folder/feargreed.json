@@ -330,5 +330,17 @@
     {
         "date": "2025-10-26",
         "fear_greed_index": "33"
+    },
+    {
+        "date": "2025-10-30",
+        "fear_greed_index": "42"
+    },
+    {
+        "date": "2025-11-06",
+        "fear_greed_index": "24"
+    },
+    {
+        "date": "2025-11-15",
+        "fear_greed_index": "22"
     }
 ]

@@ -3,7 +3,6 @@
 Tools for analyzing and backtesting a mean reversion trading strategy based on large price gaps.
 Includes functions for data retrieval, signal generation, trade metrics calculation, and strategy visualization.
 """
-
 import yfinance as yf
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -11,7 +10,7 @@ import numpy as np
 # Get previous version of file from the 11/9/2025 if you want:)
 output_path = "csv_files/mean_reversion_results.csv"
 BASE = "SPY"
-TICKER = 'NVO'
+TICKER = 'TSLA'
 INTERVAL = '1d'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
 LOOKBACK = 365
@@ -113,7 +112,6 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
 
     # add close range tuple (close[i-1], close[i])
     d['Close_Range'] = list(zip(d['Close'].shift(1).round(2), d['Close'].round(2)))
-
     # SPY baseline aligned by dates
     spy = get_data(BASE)[['Date', 'Open', 'Close']].copy()
     spy['Date'] = pd.to_datetime(spy['Date'])
@@ -187,7 +185,6 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
     }
 
     return t, stats
-
 
 
 def plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=10):
@@ -343,6 +340,6 @@ equity_curve = generate_equity_curve(trades, initial_capital=10000,plot=True)
 #     print("Win rate for baseline", stats_i_days["baseline_all_days"]["win_rate"])
 #     print("P&L for big gap up", stats_i_days["big_gap_up"]["p&L"])
 #     print("P&L for big gap down", stats_i_days["big_gap_down"]["p&L"])
+
 df = get_data(BASE)
 plot_gap_win_rates_vs_baseline(df, z=2.0, max_horizon=3)
-
