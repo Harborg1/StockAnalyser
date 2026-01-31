@@ -15,6 +15,7 @@ from datetime import datetime
 import time
 from selenium.webdriver.support import expected_conditions as EC
 import platform
+from webdriver_manager.chrome import ChromeDriverManager
 
 class TextPresentInElement(object):
     def __init__(self, locator):
@@ -42,22 +43,24 @@ class web_scraper:
         self.jobs_release ="json_folder\\jobs_release_dates.json"
 
     def setup_driver(self):
-        options = Options()
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0 Safari/537.36")
+            options = Options()
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--window-size=1920,1080")
+            # Tip: Det er ofte bedre at fjerne fastlåst user-agent, hvis du vil undgå detektering
+            options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-        if platform.system() == "Windows":
-            path = "chromedriver.exe"
-        else:
-            path = "/usr/bin/chromedriver"
-            options.add_argument("--headless=chrome")
+            # Headless mode hvis det ikke er Windows
+            if platform.system() != "Windows":
+                options.add_argument("--headless=chrome")
 
-        service = Service(executable_path=path)
-        self.driver = webdriver.Chrome(service=service, options=options)
-        return self.driver
+            # KORREKT MÅDE: Brug ChromeDriverManager til at finde stien, og send options med
+            service = Service(ChromeDriverManager().install())
+            self.driver = webdriver.Chrome(service=service, options=options)
+
+            self.driver.get("https://www.google.dk")
+            return self.driver
     
 
     def scrape_cpi(self):

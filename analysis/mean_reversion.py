@@ -14,7 +14,6 @@ TICKER = 'TSLA'
 INTERVAL = '1d'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
 LOOKBACK = 365
-
 def get_data(ticker:str, lookback=LOOKBACK, interval=INTERVAL):
     df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD,progress=False)
     
@@ -30,18 +29,25 @@ def get_data(ticker:str, lookback=LOOKBACK, interval=INTERVAL):
     return subset.dropna()
 
 def add_big_gap_moves(df: pd.DataFrame, z: float) -> pd.DataFrame:
-    """
-    Adds columns for big gap signals based on Close_Change.
-    Signal is assigned to day t, but trade entry happens on t+1.
-    """
-    df = df.copy()
-    close_change_avg = df['Close_Change'].mean()
-    close_change_std = df['Close_Change'].std()
+    rolling_win = 20
+    
+    # 1. Calculate stats as usual
+    raw_mean = df['Close_Change'].rolling(window=rolling_win).mean()
+    raw_std = df['Close_Change'].rolling(window=rolling_win).std()
 
+    # 2. SHIFT: Use yesterday's stats to judge today's move [CRITICAL]
+    # This prevents the "today's move inflates today's threshold" error.
+    df['Threshold_Mean'] = raw_mean.shift(1)
+    df['Threshold_Std'] = raw_std.shift(1)
 
+    # 3. Define thresholds for visualization/logic
+    df['Upper_Band'] = df['Threshold_Mean'] + (df['Threshold_Std'] * z)
+    df['Lower_Band'] = df['Threshold_Mean'] - (df['Threshold_Std'] * z)
+
+    # 4. Signal Logic
     df['Big_Gap'] = np.where(
-        df['Close_Change'] > close_change_avg + (close_change_std * z), 1,
-        np.where(df['Close_Change'] < close_change_avg - (close_change_std * z), -1, 0)
+        df['Close_Change'] > df['Upper_Band'], 1,
+        np.where(df['Close_Change'] < df['Lower_Band'], -1, 0)
     )
 
     return df
@@ -142,6 +148,7 @@ def get_gap_trade_details(df: pd.DataFrame, z: float, horizon: int) -> pd.DataFr
 
     #Filter out normal days
     merged = merged[merged['Big_Gap'] != 0]
+    merged = merged[merged['Big_Gap'] != 1]
     #Drop Nans 
     merged = merged.dropna(subset=['Exit_Close', 'Open_SPY_at_signal', 'Close_SPY_at_exit'])
 
@@ -323,7 +330,7 @@ def generate_equity_curve(trades_df: pd.DataFrame, initial_capital: float = 1000
     return equity_series
 
 df = get_data(TICKER)
-trades, stats = get_gap_trade_details(df, z=2.0, horizon=3)
+trades, stats = get_gap_trade_details(df, z=2.0, horizon=10)
 
 # print(f"Returned trades: {len(trades)}")
 # print(f"Stats n_trades: {stats['n_trades']}")

@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import random
 
 # --- 0. CUDA CONFIGURATION ---
-# Checks for an NVIDIA GPU and sets the device accordingly [cite: 42, 43]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
@@ -22,44 +21,89 @@ TICKERS = [
 ]
 
 START_DATE = "2015-11-06"
-END_DATE = "2019-11-27"
-TRAIN_WINDOW = 20      # Input days [cite: 245]
-HOLDING_PERIOD = 2     # Days to hold [cite: 414]
-PORTFOLIO_SIZE = 3     # "k" parameter [cite: 457]
-_SIZE = 5      # To reduce variance
+END_DATE = "2021-11-27"
+HOLDING_PERIOD = 2     
+PORTFOLIO_SIZE = 3     
+_SIZE = 3   # Ensemble size to reduce variance
+NUM_FEATURES = 5       
 
-# GA Parameters from Table 4 [cite: 410]
-GA_GENERATIONS = 4     
-GA_POPULATION = 12     
+# GA Parameters (Table 4)
+GA_GENERATIONS = 4    
+GA_POPULATION = 12
 GA_SELECTION_RATE = 0.5 
 GA_MUTATION_RATE = 0.15 
 
-# --- 2. MODEL ARCHITECTURE ---
-class RankNet(nn.Module):
-    def __init__(self, input_size, neurons):
-        super(RankNet, self).__init__()
-        # Linear layers handle the non-linear market behaviors [cite: 41, 42]
-        self.model = nn.Sequential(
-            nn.Linear(input_size, neurons),
-            nn.BatchNorm1d(neurons),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(neurons, 16),
-            nn.ReLU(),
-            nn.Linear(16, 1)
-        ).to(device) # Move entire model to GPU 
+# --- 2. EXTENSION: FEATURE ENGINEERING ---
+def calc_rsi(series, window=14):
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / (loss + 1e-8)
+    return 100 - (100 / (1 + rs))
+
+def get_technical_features(price_data):
+    print("Generating Technical Indicators (Numpy Optimized)...")
+    returns = price_data.pct_change()
+    excess_returns = returns.sub(returns.mean(axis=1), axis=0)
+    
+    feature_map = {}
+    
+    for t in TICKERS:
+        if t not in price_data.columns: continue
+        try:
+            p = price_data[t]
+            
+            ma = p.rolling(window=20).mean()
+            ma_dev = (p - ma) / ma
+            
+            ema = p.ewm(span=20, adjust=False).mean()
+            ema_dev = (p - ema) / ema
+            
+            ema12 = p.ewm(span=12, adjust=False).mean()
+            ema26 = p.ewm(span=26, adjust=False).mean()
+            macd = (ema12 - ema26) / p
+            
+            rsi = calc_rsi(p) / 100.0
+            
+            # Create DataFrame then convert to FLOAT32 NUMPY ARRAY immediately
+            df = pd.DataFrame({
+                'ER': excess_returns[t],
+                'MA': ma_dev,
+                'EMA': ema_dev,
+                'MACD': macd,
+                'RSI': rsi
+            }).fillna(0)
+            
+            feature_map[t] = df.values.astype(np.float32)
+            
+        except: continue
+            
+    return feature_map, excess_returns
+
+# --- 3. DYNAMIC MODEL ARCHITECTURE ---
+class DynamicRankNet(nn.Module):
+    def __init__(self, input_size, layer_structure):
+        super(DynamicRankNet, self).__init__()
+        layers = []
+        in_dim = input_size
+        for hidden_units in layer_structure:
+            layers.append(nn.Linear(in_dim, hidden_units))
+            layers.append(nn.BatchNorm1d(hidden_units))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(0.3))
+            in_dim = hidden_units 
+        layers.append(nn.Linear(in_dim, 1))
+        self.model = nn.Sequential(*layers).to(device)
 
     def forward(self, x):
         return self.model(x)
 
-def train_ranknet(model, X_tensor, y_tensor, epochs=25, batch_size=32):
-    # Ensure data is moved to the GPU before training 
+def train_ranknet(model, X_tensor, y_tensor, epochs, batch_size):
     X_tensor, y_tensor = X_tensor.to(device), y_tensor.to(device)
-    
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
     model.train()
     
-    for epoch in range(epochs):
+    for _ in range(epochs):
         permutation = torch.randperm(X_tensor.size()[0])
         for i in range(0, X_tensor.size()[0], batch_size):
             indices = permutation[i:i+batch_size]
@@ -72,183 +116,277 @@ def train_ranknet(model, X_tensor, y_tensor, epochs=25, batch_size=32):
                 optimizer.zero_grad()
                 scores = model(batch_X)
                 s1, s2 = scores[idx1], scores[idx2]
-                # Pairwise Logistic Loss: Learning relative ranking [cite: 216, 217]
                 diff = s1.unsqueeze(1) - s2.unsqueeze(0)
-                loss = torch.log(1 + torch.exp(-diff)).mean() #[cite: 217, 218]
+                loss = torch.log(1 + torch.exp(-diff)).mean()
                 loss.backward()
                 optimizer.step()
     return model
 
-# --- 3. DATA PREPARATION ---
+# --- 4. DATA FETCHING ---
 print("Fetching data...")
 data = yf.download(TICKERS, start=START_DATE, end=END_DATE, progress=False)['Close']
 data = data.ffill().bfill()
-# Excess Return calculation relative to market index [cite: 225, 232]
-excess_returns = data.pct_change().sub(data.pct_change().mean(axis=1), axis=0).dropna()
+feature_dict, excess_returns = get_technical_features(data)
 
-# --- 4. GENETIC OPTIMIZER WITH FUNCTIONAL FITNESS ---
-def run_mini_backtest(params, ex_rets_slice):
-    """Fitness Function evaluating return-to-risk [cite: 142, 420]"""
-    hist_size = int(params['period_size'])
-    neurons = int(params['neurons'])
+# --- 5. GENETIC OPTIMIZER WITH TABLE 4 CONSTRAINTS ---
+def run_mini_backtest(params, valid_tickers, current_idx):
+    # EXTRACT GENES
+    window = int(params['number_of_lags'])
+    train_history = int(params['number_of_periods'])
+    layer_config = params['layers']
     bs = int(params['batch_size'])
+    ep = int(params['stopping_criterion'])
     
-    test_idx = len(ex_rets_slice) - HOLDING_PERIOD - 1
-    if test_idx - hist_size - TRAIN_WINDOW < 0: return -999.0
+    train_end = current_idx - HOLDING_PERIOD
+    train_start = max(0, train_end - train_history) # Dynamic History
     
-    X_list, y_list = [], []
-    train_range = range(test_idx - hist_size, test_idx - HOLDING_PERIOD, HOLDING_PERIOD)
-    for k in train_range:
-        h_slice = ex_rets_slice.iloc[k - TRAIN_WINDOW : k]
-        f_perf = ex_rets_slice.iloc[k : k + HOLDING_PERIOD].sum()
-        med = f_perf.median() # Label based on median [cite: 591]
-        for s in TICKERS:
-            try:
-                pat = h_slice[s].values
-                if len(pat) == TRAIN_WINDOW and not np.isnan(pat).any():
-                    X_list.append(pat); y_list.append(1.0 if f_perf[s] > med else 0.0)
-            except: continue
+    X_train, y_train = [], []
     
-    if len(X_list) < 20: return -999.0
+    # BUILD TRAINING SET
+    for t in range(train_start, train_end, HOLDING_PERIOD):
+        f_perf = excess_returns.iloc[t : t + HOLDING_PERIOD].sum()
+        med = f_perf.median()
+        
+        for s in valid_tickers:
+            start_slice = t - window
+            if start_slice < 0: continue
+            
+            # Numpy slicing
+            feat_block = feature_dict[s][start_slice : t].flatten()
+            
+            if len(feat_block) == window * NUM_FEATURES:
+                X_train.append(feat_block)
+                y_train.append(1.0 if f_perf[s] > med else 0.0)
+                
+    if len(X_train) < 50: return -999.0
     
-    # Standardize inputs for stable training [cite: 27, 48]
-    X_t = torch.tensor(np.array(X_list), dtype=torch.float32)
-    y_t = torch.tensor(np.array(y_list), dtype=torch.float32).view(-1, 1)
-    X_t = (X_t - X_t.mean()) / (X_t.std() + 1e-8)
+    X_t = torch.tensor(np.array(X_train), dtype=torch.float32)
+    t_mean, t_std = X_t.mean(), X_t.std() + 1e-8
+    X_t = (X_t - t_mean) / t_std
+    y_t = torch.tensor(np.array(y_train), dtype=torch.float32).view(-1, 1)
     
-    model = RankNet(TRAIN_WINDOW, neurons)
-    model = train_ranknet(model, X_t, y_t, epochs=15, batch_size=bs)
+    input_dim = window * NUM_FEATURES
+    model = DynamicRankNet(input_dim, layer_config)
     
-    live_pat = []
-    for s in TICKERS: live_pat.append(ex_rets_slice.iloc[test_idx - TRAIN_WINDOW : test_idx][s].values)
+    # Train using the specific gene's batch size and epochs
+    model = train_ranknet(model, X_t, y_t, epochs=ep, batch_size=bs)
     
-    # Inference on GPU
-    X_live = (torch.tensor(np.array(live_pat), dtype=torch.float32).to(device) - X_t.to(device).mean()) / (X_t.to(device).std() + 1e-8)
+    # INFERENCE
+    X_live, live_s = [], []
+    for s in valid_tickers:
+        start_slice = current_idx - window
+        if start_slice < 0: continue
+        
+        feat_block = feature_dict[s][start_slice : current_idx].flatten()
+        if len(feat_block) == window * NUM_FEATURES:
+            X_live.append(feat_block)
+            live_s.append(s)
+            
+    if not X_live: return -999.0
+    
+    X_live_t = torch.tensor(np.array(X_live), dtype=torch.float32)
+    X_live_t = (X_live_t - t_mean) / t_std
+    X_live_t = X_live_t.to(device)
     
     model.eval()
     with torch.no_grad():
-        preds = model(X_live).cpu().numpy().flatten()
+        preds = model(X_live_t).cpu().numpy().flatten()
+        
+    score_df = pd.DataFrame({'Ticker': live_s, 'Score': preds}).sort_values('Score', ascending=False)
+    top_picks = score_df.head(PORTFOLIO_SIZE)['Ticker']
+    realized_ret = excess_returns.iloc[current_idx : current_idx + HOLDING_PERIOD][top_picks].sum().mean()
+    return realized_ret
+
+def evolve_hyperparams(current_idx):
+    print(f"\nRunning Static Genetic Optimization (Index {current_idx})...")
     
-    top_idx = np.argsort(preds)[-PORTFOLIO_SIZE:]
-    real_perf = ex_rets_slice.iloc[test_idx : test_idx + HOLDING_PERIOD].sum().values[top_idx].mean()
-    return real_perf
+    population = []
+    for _ in range(GA_POPULATION):
+        # TABLE 4 CONSTRAINTS APPLIED HERE
+        
+        # "Number of hidden" (Layers): 1 to 16
+        depth = random.randint(1, 3) 
+        # "Neurons" (Units per layer): 22 to 70
+        layers = [random.randint(22, 70) for _ in range(depth)]
+        
+        gene = {
+            # "Number of lags": 1 to 16
+            'number_of_lags': random.randint(1, 16), 
+            
+            # "Batch size": 12 to 50
+            'batch_size': random.randint(12, 50),
+            
+            # "Stopping Criterion" (Epochs): 11 to 24
+            'stopping_criterion': random.randint(11, 24),
+            
+            # "Number of periods" (Training History): 55 to 259
+            'number_of_periods': random.randint(55, 259),
+            
+            'layers': layers
+        }
+        population.append(gene)
 
-def evolve_hyperparams(ex_rets):
-    """Genetic Algorithm for hyperparameter optimization [cite: 256, 388]"""
-    print("\nStarting Genetic Optimization...")
-    population = [{'period_size': random.randint(55, 259), 'neurons': random.randint(22, 70), 'batch_size': random.randint(12, 50)} 
-                  for _ in range(GA_POPULATION)]
-
-    tune_slice = ex_rets.iloc[:250] 
+    valid_tickers = [t for t in TICKERS if t in feature_dict]
 
     for gen in range(GA_GENERATIONS):
         scored = []
         for p in population:
-            fitness = run_mini_backtest(p, tune_slice)
+            fitness = run_mini_backtest(p, valid_tickers, current_idx - HOLDING_PERIOD)
             scored.append((fitness, p))
         
-        scored.sort(key=lambda x: x[0], reverse=True) #[cite: 261]
-        parents = [p for s, p in scored[:int(GA_POPULATION * GA_SELECTION_RATE)]] #[cite: 262, 267]
+        scored.sort(key=lambda x: x[0], reverse=True)
+        print(f"  > Gen {gen+1} Best Score: {scored[0][0]:.4f}")
         
-        print(f"Gen {gen+1} Best Fitness (Predicted Return): {scored[0][0]:.5f}")
+        parents = [p for s, p in scored[:int(GA_POPULATION * GA_SELECTION_RATE)]]
         
         next_gen = parents.copy()
         while len(next_gen) < GA_POPULATION:
             p1, p2 = random.sample(parents, 2)
-            # Crossover to combine traits [cite: 269, 273]
-            child = {k: random.choice([p1[k], p2[k]]) for k in p1}
-            # Mutation to prevent local minima traps [cite: 274, 275]
+            
+            # CROSSOVER
+            child = {
+                'number_of_lags': random.choice([p1['number_of_lags'], p2['number_of_lags']]),
+                'batch_size': random.choice([p1['batch_size'], p2['batch_size']]),
+                'stopping_criterion': random.choice([p1['stopping_criterion'], p2['stopping_criterion']]),
+                'number_of_periods': random.choice([p1['number_of_periods'], p2['number_of_periods']]),
+                'layers': random.choice([p1['layers'], p2['layers']])
+            }
+            
+            # MUTATION (Re-roll with Table 4 limits)
             if random.random() < GA_MUTATION_RATE:
-                child['period_size'] = random.randint(55, 259)
+                mutation_type = random.choice(['lags', 'batch', 'stop', 'periods'])
+                if mutation_type == 'lags':
+                    child['number_of_lags'] = random.randint(1, 16)
+                elif mutation_type == 'batch':
+                    child['batch_size'] = random.randint(12, 50)
+                elif mutation_type == 'stop':
+                    child['stopping_criterion'] = random.randint(11, 24)
+                elif mutation_type == 'periods':
+                    child['number_of_periods'] = random.randint(55, 259)
+                    
             next_gen.append(child)
         population = next_gen
         
     return scored[0][1]
 
-# --- 5. EXECUTION ---
-best_params = evolve_hyperparams(excess_returns)
-TRAINING_HISTORY = best_params['period_size']
-OPT_NEURONS = best_params['neurons']
-OPT_BATCH = best_params['batch_size']
-
-print(f"\nOptimization Complete. Best Params: {best_params}")
-
-# --- 6. ROLLING BACKTEST ---
+# --- 6. CORRECTED ROLLING BACKTEST (STATIC OPTIMIZATION) ---
 print(f"\nStarting Rolling Backtest on {device}...")
 returns_best, returns_worst, returns_market, dates = [], [], [], []
 cap_best, cap_worst, cap_market = 10000.0, 10000.0, 10000.0
 valid_days = excess_returns.index
-backtest_start = max(250, TRAIN_WINDOW + TRAINING_HISTORY)
 
-for i in range(backtest_start, len(valid_days) - HOLDING_PERIOD, HOLDING_PERIOD):
-    # STEP A: BUILD TRAINING SET [cite: 255, 413]
-    X_train_list, y_train_list = [], []
-    history_range = range(i - TRAINING_HISTORY, i - HOLDING_PERIOD, HOLDING_PERIOD)
+# Start backtest after enough data for indicators
+start_idx = 300 
+
+# STEP 1: Run Genetic Algorithm ONCE to find the best architecture
+print(f"--- Optimizing Hyperparameters (Running GA Once) ---")
+best_gene = evolve_hyperparams(start_idx)
+print(f"Optimal Parameters Found: {best_gene}")
+print(f"----------------------------------------------------")
+
+# Extract the winning parameters to use for the ENTIRE backtest
+window = best_gene['number_of_lags']
+layer_config = best_gene['layers']
+bs = best_gene['batch_size']
+ep = best_gene['stopping_criterion']
+train_history = best_gene['number_of_periods']
+
+# STEP 2: Run the Rolling Backtest using these fixed parameters
+for i in range(start_idx, len(valid_days) - HOLDING_PERIOD, HOLDING_PERIOD):
     
-    for k in history_range:
-        h_slice = excess_returns.iloc[k - TRAIN_WINDOW : k]
-        f_perf = excess_returns.iloc[k : k + HOLDING_PERIOD].sum()
-        median_f = f_perf.median()
-        
-        for stock in TICKERS:
-            try:
-                pattern = h_slice[stock].values
-                if len(pattern) == TRAIN_WINDOW and not np.isnan(pattern).any():
-                    X_train_list.append(pattern)
-                    y_train_list.append(1.0 if f_perf[stock] > median_f else 0.0)
-            except: continue
-                
-    if not X_train_list: continue
-
-    X_train_np = np.array(X_train_list)
-    t_mean, t_std = np.mean(X_train_np), np.std(X_train_np) + 1e-8
-    X_tensor = (torch.tensor(X_train_np, dtype=torch.float32) - t_mean) / t_std
-    y_tensor = torch.tensor(np.array(y_train_list), dtype=torch.float32).view(-1, 1)
-
-    # STEP B:  PREDICTION
-    current_slice = excess_returns.iloc[i - TRAIN_WINDOW : i]
-    X_live_list, live_tickers = [], []
-    for s in TICKERS:
-        try:
-            p = current_slice[s].values
-            if len(p) == TRAIN_WINDOW and not np.isnan(p).any():
-                X_live_list.append(p); live_tickers.append(s)
-        except: continue
+    # 3. Build Training Set (Historical)
+    train_end = i
+    # Fix: Use dynamic training history size from GA
+    train_start = max(0, train_end - train_history)
+    
+    X_train, y_train = [], []
+    valid_tickers = [t for t in TICKERS if t in feature_dict]
+    
+    for t in range(train_start, train_end, HOLDING_PERIOD):
+        f_perf = excess_returns.iloc[t : t + HOLDING_PERIOD].sum()
+        med = f_perf.median()
+        for s in valid_tickers:
+            start_slice = max(0, t - window)
             
-    # Move live data to GPU for inference [cite: 430]
-    X_live_tensor = (torch.tensor(np.array(X_live_list), dtype=torch.float32).to(device) - t_mean) / t_std
+            # Numpy Slicing
+            feat_block = feature_dict[s][start_slice : t].flatten()
+            
+            if len(feat_block) == window * NUM_FEATURES:
+                X_train.append(feat_block)
+                y_train.append(1.0 if f_perf[s] > med else 0.0)
+                
+    if len(X_train) < 50: continue
+
+    X_train_np = np.array(X_train)
+    t_mean, t_std = X_train_np.mean(), X_train_np.std() + 1e-8
+    X_tensor = (torch.tensor(X_train_np, dtype=torch.float32) - t_mean) / t_std
+    y_tensor = torch.tensor(np.array(y_train), dtype=torch.float32).view(-1, 1)
+
+    # 4. Train Ensemble & Predict
+    scores_accum = np.zeros(0)
+    live_tickers = []
     
-    scores = np.zeros(len(live_tickers))
+    # Prepare Live Data
+    X_live = []
+    for s in valid_tickers:
+        start_slice = max(0, i - window)
+        
+        # Numpy Slicing
+        feat_block = feature_dict[s][start_slice : i].flatten()
+        
+        if len(feat_block) == window * NUM_FEATURES:
+            X_live.append(feat_block)
+            live_tickers.append(s)
+            
+    if not X_live: continue
+    
+    X_live_tensor = torch.tensor(np.array(X_live), dtype=torch.float32)
+    X_live_tensor = (X_live_tensor - t_mean) / t_std
+    X_live_tensor = X_live_tensor.to(device)
+    
+    scores_accum = np.zeros(len(live_tickers))
+    
+    # Train Ensemble (_SIZE models to reduce variance of the random weight initialization)
     for _ in range(_SIZE):
-        model = RankNet(TRAIN_WINDOW, OPT_NEURONS)
-        model = train_ranknet(model, X_tensor, y_tensor, epochs=25, batch_size=OPT_BATCH)
+        input_dim = window * NUM_FEATURES
+        model = DynamicRankNet(input_dim, layer_config)
+        # Fix: Use dynamic epochs from GA
+        model = train_ranknet(model, X_tensor, y_tensor, epochs=ep, batch_size=bs)
         model.eval()
-        with torch.no_grad(): 
-            # Bring scores back to CPU for aggregation
-            scores += model(X_live_tensor).cpu().numpy().flatten()
+        with torch.no_grad():
+            scores_accum += model(X_live_tensor).cpu().numpy().flatten()
+            
+    # 5. Trading
+    score_df = pd.DataFrame({'Ticker': live_tickers, 'Score': scores_accum / _SIZE}).sort_values('Score', ascending=False)
     
-    score_df = pd.DataFrame({'Ticker': live_tickers, 'Score': scores / _SIZE}).sort_values('Score', ascending=False)
+    top = score_df.head(PORTFOLIO_SIZE)['Ticker']
+    bottom = score_df.tail(PORTFOLIO_SIZE)['Ticker']
     
-    # STEP C: TRADING [cite: 416, 457]
-    top, bottom = score_df.head(PORTFOLIO_SIZE)['Ticker'], score_df.tail(PORTFOLIO_SIZE)['Ticker']
-    p0, p1 = data.iloc[i], data.iloc[i + HOLDING_PERIOD]
+    p0 = data.iloc[i]
+    p1 = data.iloc[i + HOLDING_PERIOD]
     
     ret_b = ((p1[top] - p0[top]) / p0[top]).mean()
     ret_w = ((p1[bottom] - p0[bottom]) / p0[bottom]).mean()
     ret_m = ((p1[live_tickers] - p0[live_tickers]) / p0[live_tickers]).mean()
     
-    cap_best *= (1 + ret_b); cap_worst *= (1 + ret_w); cap_market *= (1 + ret_m)
+    cap_best *= (1 + ret_b)
+    cap_worst *= (1 + ret_w)
+    cap_market *= (1 + ret_m)
+    
     dates.append(valid_days[i + HOLDING_PERIOD])
-    returns_best.append(cap_best); returns_worst.append(cap_worst); returns_market.append(cap_market)
+    returns_best.append(cap_best)
+    returns_worst.append(cap_worst)
+    returns_market.append(cap_market)
 
-    if i % 40 == 0:
+    if i % 10 == 0:
         print(f"Date: {valid_days[i].date()} | Best: ${cap_best:,.0f} | Worst: ${cap_worst:,.0f}")
 
 # --- 7. PLOT ---
 plt.figure(figsize=(12, 6))
-plt.plot(dates, returns_best, label='Optimized Winners (GA)', color='green', linewidth=2)
-plt.plot(dates, returns_market, label='Market Benchmark', color='gray', linestyle='--')
-plt.plot(dates, returns_worst, label='Optimized Losers', color='red', alpha=0.6)
-plt.title('Deep RankNet with GPU Acceleration and GA Optimization')
+plt.plot(dates, returns_best, label='Deep RankNet (Best)', color='green', linewidth=2)
+plt.plot(dates, returns_market, label='Market', color='gray', linestyle='--')
+plt.plot(dates, returns_worst, label='Losers (Worst)', color='red', alpha=0.6)
+plt.title(f'Deep RankNet Performance')
 plt.ylabel('Portfolio Value ($)')
 plt.legend(); plt.grid(True, alpha=0.3); plt.show()
+

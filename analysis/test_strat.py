@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 """
 START_DATE = "2024-01-01"
 END_DATE   = "2025-09-27"
-TICKER     = "CLSK"
+TICKER     = "TSLA"
 
 
 def get_data(ticker=TICKER, start=START_DATE, end=END_DATE):

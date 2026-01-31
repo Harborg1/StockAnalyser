@@ -1,7 +1,22 @@
 
 import pandas as pd
 def stock_market_holidays(year):
-    if year == 2025:
+
+    if year == 2026:
+        stock_market_holidays = {
+            pd.Timestamp(year=2026, month=1, day=1): "New Year's Day",
+            pd.Timestamp(year=2026, month=1, day=19): "Martin Luther King Jr. Day",
+            pd.Timestamp(year=2026, month=2, day=16): "Presidents' Day",
+            pd.Timestamp(year=2026, month=4, day=3): "Good Friday",
+            pd.Timestamp(year=2026, month=5, day=25): "Memorial Day",
+            pd.Timestamp(year=2026, month=6, day=19): "Juneteenth",
+            pd.Timestamp(year=2026, month=7, day=3): "Independence Day (observed)",
+            pd.Timestamp(year=2026, month=9, day=7): "Labor Day",
+            pd.Timestamp(year=2026, month=11, day=11): "Veterans Day",
+            pd.Timestamp(year=2026, month=11, day=26): "Thanksgiving Day",
+            pd.Timestamp(year=2026, month=12, day=25): "Christmas Day",
+        }
+    elif year == 2025:
         stock_market_holidays = {
             pd.Timestamp(year=2025, month=1, day=1): "New Year's Day",
                 pd.Timestamp(year=2025, month=1, day=9): "Closed in honor of Jimmy Carter",
