@@ -1288,5 +1288,10 @@
         "timestamp": "2026-02-06 11:19:19",
         "Volume Percentage Change (24h)": "+51.33%",
         "Total bitcoin": "2,492,964.11"
+    },
+    {
+        "timestamp": "2026-02-07 10:57:52",
+        "Volume Percentage Change (24h)": "-42.52%",
+        "Total bitcoin": "2,478,825.68"
     }
 ]
