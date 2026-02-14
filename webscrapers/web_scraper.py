@@ -260,6 +260,7 @@ class web_scraper:
             if not link.startswith("http"):
                 link = "https://investors.cleanspark.com" + link
 
+                
             if any(item["link"] == link for item in existing_links):
                 continue
 
@@ -328,7 +329,6 @@ class web_scraper:
                     else:
                         data = []
                     data.append(new_entry)
-
                     # Save updated data
                     with open(json_file_path, "w") as f:
                         json.dump(data, f, indent=4)
@@ -340,16 +340,14 @@ class web_scraper:
         except Exception as e:
             print(f"Error scraping Fear & Greed index: {e}")
             return None
-
     
-
     def scrape_bitcoin_address(self):
         """
         Scrapes data from the bitcoin address of CLSK that is more recent than the cutoff date."""
         # Calculate target_count as the number of days from today to May 1st
         self.setup_driver()
         today = datetime.now()
-        cutoff_date = datetime(2025, 5, 1)
+        cutoff_date = datetime(2026, 1, 31)
         days_difference = (today - cutoff_date).days+1
         target_count = days_difference
         print(f"Target count (days difference): {target_count}")
@@ -366,12 +364,12 @@ class web_scraper:
         while len(existing_data) < target_count:
             # Click "Load More Transactions" to load more data
             try:
-                load_more_button = WebDriverWait(self.driver, 100).until(
+                load_more_button = WebDriverWait(self.driver, 200).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='button'][class*='btn-outline-secondary'][onclick*='getTransactions']"))
                 )
                 
                 self.driver.execute_script("arguments[0].click();", load_more_button)
-                WebDriverWait(self.driver, 100).until(
+                WebDriverWait(self.driver, 200).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "#txs tr:not(#loading)"))
                 )
                 total_clicks += 1
@@ -491,11 +489,9 @@ class web_scraper:
 
         self.driver.quit()
         return existing_data
-    
+
     def calculate_total_btc(self,json_data):
-        bitcoin_holding = 12090 #Estimated bitcoin holding since 01-05-2025
-        off_set=900 #A transaction of 900 BTC that occured on 15-05-2025 (not mined)
-        bitcoin_holding-=off_set 
+        bitcoin_holding = 13513 #Estimated bitcoin holding since 01-31-2026
         bitcoin_data = []
         if os.path.exists(json_data):
             with open(json_data, "r", encoding="utf-8") as file:
@@ -658,7 +654,7 @@ if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     #scraper.scrape_articles()
-    scraper.scrape_useful_data()
+    scraper.scrape_bitcoin_address()
     #scraper.scrape_jobs_release_dates(scraper.jobs_release)
     # scraper.scrape_earnings()
     #scraper.scrape_bitcoin_address()

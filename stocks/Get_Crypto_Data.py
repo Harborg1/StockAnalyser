@@ -70,3 +70,24 @@ class crypto_reader(MarketReaderBase):
             return plt
         else:
             plt.show()
+
+    def get_price_from_all_time_high(self):
+        try:
+            # Download all historical data for SPY
+            btc_data = yf.download("BTC-USD", progress=False, auto_adjust=False)
+            if btc_data.empty:
+                return "Failed to retrieve SPY data."
+            
+            # Get all-time high close price
+            all_time_high = btc_data['Close']["BTC-USD"].max()
+
+            # Get latest closing price (most recent available trading day)
+            latest_close = btc_data['Close']["BTC-USD"].iloc[-1]
+
+            # Calculate percentage difference from ATH
+            percentage_below_ath = round(((latest_close / all_time_high) - 1) * 100, 2)
+
+            return percentage_below_ath  # Negative means below ATH
+        except Exception as e:
+            return f"Error: {str(e)}"
+

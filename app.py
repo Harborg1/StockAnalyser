@@ -262,6 +262,8 @@ class App:
             self.crypto_reader_instance.start_date, self.crypto_reader_instance.end_date, stock, 50
         )
 
+        price_diff = self.crypto_reader_instance.get_price_from_all_time_high()
+
         # Labels
         ctk.CTkLabel(self.main_frame, text=f"BTC Price: ${current_price}", font=ctk.CTkFont(size=14),
                     text_color=self.colors['secondary'], fg_color=self.colors['background']
@@ -272,6 +274,10 @@ class App:
         ).grid(row=3, column=0, columnspan=2, pady=5)
 
         ctk.CTkLabel(self.main_frame, text=f"50-day MA: {ma50}", font=ctk.CTkFont(size=14),
+                    text_color=self.colors['secondary'], fg_color=self.colors['background']
+        ).grid(row=4, column=0, columnspan=2, pady=5)
+
+        ctk.CTkLabel(self.main_frame, text=f"Price difference: {price_diff}", font=ctk.CTkFont(size=14),
                     text_color=self.colors['secondary'], fg_color=self.colors['background']
         ).grid(row=4, column=0, columnspan=2, pady=5)
 

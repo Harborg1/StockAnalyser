@@ -358,5 +358,13 @@
     {
         "date": "2026-02-03",
         "fear_greed_index": "52"
+    },
+    {
+        "date": "2026-02-09",
+        "fear_greed_index": "45"
+    },
+    {
+        "date": "2026-02-13",
+        "fear_greed_index": "35"
     }
 ]
