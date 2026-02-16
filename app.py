@@ -17,6 +17,8 @@ import customtkinter as ctk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.ticker import EngFormatter
+import threading
+
 
 class App:
     """Main application class for the Stock Data Calendar Viewer.
@@ -76,7 +78,18 @@ class App:
         root.grid_columnconfigure(0, weight=1)
         self.populate_main_screen()
 
-    
+    def run_in_thread(self, target_func, args=(), callback=None):
+        """Executes a function in a background thread and calls a callback when done."""
+        def wrapper():
+            result = target_func(*args)
+            if callback:
+                # We must use .after to interact with Tkinter from a thread
+                self.root.after(0, lambda: callback(result))
+                
+        thread = threading.Thread(target=wrapper, daemon=True)
+        thread.start()
+
+        
     def cleanup_canvas(self):
         if hasattr(self, 'canvas'):
             try:
@@ -184,7 +197,7 @@ class App:
 
         self.sentiment_label = tk.Label(
             info_frame,
-            text="Sentiment value: --",
+            text="Sentiment value:",
             font=('Helvetica', 11),
             bg=self.colors['background'],
             fg=self.colors['text'],
@@ -195,7 +208,7 @@ class App:
 
         self.market_state_label = tk.Label(
             info_frame,
-            text="SPY market state: --",
+            text="SPY market state:",
             font=('Helvetica', 11),
             bg=self.colors['background'],
             fg=self.colors['text'],
@@ -273,18 +286,19 @@ class App:
                     text_color=self.colors['secondary'], fg_color=self.colors['background']
         ).grid(row=3, column=0, columnspan=2, pady=5)
 
-        ctk.CTkLabel(self.main_frame, text=f"50-day MA: {ma50}", font=ctk.CTkFont(size=14),
-                    text_color=self.colors['secondary'], fg_color=self.colors['background']
-        ).grid(row=4, column=0, columnspan=2, pady=5)
+        # ctk.CTkLabel(self.main_frame, text=f"50-day MA: {ma50}", font=ctk.CTkFont(size=14),
+        #             text_color=self.colors['secondary'], fg_color=self.colors['background']
+        # ).grid(row=4, column=0, columnspan=2, pady=5)
 
         ctk.CTkLabel(self.main_frame, text=f"Price difference: {price_diff}", font=ctk.CTkFont(size=14),
                     text_color=self.colors['secondary'], fg_color=self.colors['background']
         ).grid(row=4, column=0, columnspan=2, pady=5)
 
+
         json_path = os.path.join("json_folder", "coinglass_balance_24h_change.json")
         with open(json_path, "r") as f:
             data = json.load(f)
-        
+
         data.sort(key=lambda x: x["timestamp"])  # Ensure ascending order
 
         # Process data
@@ -668,22 +682,26 @@ class App:
                 for lnk in links:
                     self.create_link(sentiment_frame, lnk, lnk)
 
-    def fetch_news(self) -> None:
-        """Fetch news articles and earnings data for the selected stock.
-        This method:
-        1. Gets the currently selected stock
-        2. Scrapes articles if the stock is CLSK
-        3. Scrapes earnings data for any stock
-        """
-        self.stock_entry = str(self.stock_entry.get())
-        self.web_scraper_instance = web_scraper(self.stock_entry)
-        # Only scrape articles for CLSK
-        if self.stock_entry == "CLSK":
-            self.web_scraper_instance.scrape_articles()
-            self.web_scraper_instance.scrape_bitcoin_address()
-        # Scrape earnings date for any stock
-        self.web_scraper_instance.scrape_earnings()
 
+    def fetch_news(self) -> None:
+        # 1. Update UI to show progress
+        self.fetch_news_button.configure(state="disabled", text="Scraping...")
+
+        def scrape_task():
+            stock = str(self.stock_entry.get())
+            scraper = web_scraper(stock)
+            if stock == "CLSK":
+                scraper.scrape_articles()
+                scraper.scrape_bitcoin_address()
+            scraper.scrape_earnings()
+            return "News fetch complete!"
+        
+        def on_done(message):
+            # 2. Reset UI when finished
+            self.fetch_news_button.configure(state="normal", text="Fetch News")
+            print(message)
+
+        self.run_in_thread(scrape_task, callback=on_done)
     
     def show_calendar(self) -> None:
         """Display the stock calendar for the selected year, month, and stock.
@@ -691,6 +709,7 @@ class App:
         1. Gets the selected year, month, and stock from the UI
         2. Creates and displays the calendar view
         """
+
         year: int = int(self.year_entry.get())
         month: int = int(self.month_entry.get())
         stock: str = str(self.stock_entry.get())
@@ -715,44 +734,68 @@ class App:
         # Save the figure as a PDF
         filename: str = f"images/{stock}_{year}_{month}.pdf"
         self.figure.savefig(filename)
-
+    
 
     def show_market_state(self) -> None:
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        try:
-            # Check if the data is in the .json file
-            with open('json_folder\\feargreed.json', 'r', encoding='utf-8') as f:
-                sentiment_data = json.load(f)
-                if sentiment_data[-1]["date"] == current_date:
-                    self.sentiment_label.config(text = f'Sentiment value: {sentiment_data[-1]["fear_greed_index"]}')
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Could not retrieve the data: {e}")
-        if sentiment_data[-1]["date"] != current_date:
-            sentiment_value = self.web_scraper_instance.scrape_fear_greed_index(self.web_scraper_instance.sentiment_url)
-            if sentiment_value:
-                self.sentiment_label.config(text =  f'Sentiment value: {sentiment_value}')
-            else:
-                self.sentiment_label.config(text = "Could not retrieve sentiment data.")
+        """Safely loads market labels using a background thread."""
 
-        # Update market state
-        try:
-            diff = self.stock_reader_instance.get_spy_distance_from_ath()
-            if isinstance(diff, str):
-                state_text = f"SPY: {diff}"
-            else:
-                if diff >= -10:
-                    label = "🐂  Bull Market"
-                elif -20 < diff < -10:
-                    label = "⚠️ Correction"
-                elif -30 < diff <= -20:
-                    label = "🐻 Bear Market"
+        def get_data():
+            """This runs in a background thread (Slow I/O tasks)."""
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            data = {"sentiment": "", "market_state": ""}
+            sentiment_val = None
+
+            # 1. Handle Sentiment Data
+            try:
+                with open('json_folder\\feargreed.json', 'r', encoding='utf-8') as f:
+                    json_data = json.load(f)
+                    # Check if latest entry is from today
+                    if json_data and json_data[-1]["date"] == current_date:
+                        sentiment_val = json_data[-1]["fear_greed_index"]
+                    
+                # If not in file/today, scrape it
+                if sentiment_val is None:
+                    sentiment_val = self.web_scraper_instance.scrape_fear_greed_index(
+                        self.web_scraper_instance.sentiment_url
+                    )
+                
+                data["sentiment"] = str(sentiment_val) if sentiment_val else "Error"
+            except Exception as e:
+                print(f"Sentiment fetch error: {e}")
+                data["sentiment"] = "Error"
+
+            # 2. Handle SPY Market State
+            try:
+                diff = self.stock_reader_instance.get_spy_distance_from_ath()
+                if isinstance(diff, str):
+                    state_text = f"SPY: {diff}"
                 else:
-                    label = "📉 Recession"
-                state_text = f"SPY is {diff:.2f}% from ATH: {label}"
-        except Exception as e:
-            state_text = f"SPY error: {e}"
-        self.market_state_label.config(text=state_text)
+                    if diff >= -10:
+                        label = "🐂 Bull Market"
+                    elif -20 < diff < -10:
+                        label = "⚠️ Correction"
+                    elif -30 < diff <= -20:
+                        label = "🐻 Bear Market"
+                    else:
+                        label = "📉 Recession"
+                    state_text = f"{diff:.2f}% from ATH: {label}"
+                
+                data["market_state"] = state_text
+            except Exception as e:
+                print(f"SPY fetch error: {e}")
+                data["market_state"] = "Error"
 
+            return data
+
+        def update_labels(data):
+            """This runs in the MAIN thread (UI updates)."""
+            if data:
+                self.sentiment_label.config(text=f"Sentiment value: {data['sentiment']}")
+                self.market_state_label.config(text=f"SPY state: {data['market_state']}")
+
+        # Start the threaded process
+        self.run_in_thread(get_data, callback=update_labels)
+        
 # Initialize Tkinter
 if __name__ == "__main__":
     root = tk.Tk()
@@ -773,4 +816,3 @@ if __name__ == "__main__":
                 print(f"Final shutdown error: {e}")
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
-    

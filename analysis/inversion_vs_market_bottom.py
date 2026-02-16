@@ -196,7 +196,7 @@ def plot_crisis_data(crisis_data, download = False):
 
 # print(df_results)
 
-get_spread("2025-01-07","2025-09-14",plot=True)
+get_spread("2025-01-07","2026-09-14",plot=True)
 
 spread = fred.get_series("T10Y2Y").to_frame(name="T10Y2Y")
 
