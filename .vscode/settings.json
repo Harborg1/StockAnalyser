@@ -5,7 +5,7 @@
         "markdown": false,
         "scminput": false
     },
-    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
     "python-envs.pythonProjects": [],
-    "python-envs.defaultPackageManager": "ms-python.python:pip"
+    "python-envs.defaultPackageManager": "ms-python.python:conda"
 }
