@@ -143,6 +143,7 @@ Analyze the stock data for {stock} and recommend a trading strategy (buy, hold, 
 6. Justify each suggestion briefly using the data and principles of technical analysis.
 """
 
+
         }
     ]
 

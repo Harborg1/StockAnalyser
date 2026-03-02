@@ -702,7 +702,7 @@ class App:
             print(message)
 
         self.run_in_thread(scrape_task, callback=on_done)
-    
+
     def show_calendar(self) -> None:
         """Display the stock calendar for the selected year, month, and stock.
         This method:

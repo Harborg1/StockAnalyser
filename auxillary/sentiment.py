@@ -32,11 +32,3 @@ def get_news_sentiment(stock, start_date, end_date):
             article_urls.append(url)  # Collect the URL of the article
     if sentiment_scores:
         return sum(sentiment_scores) / len(sentiment_scores), article_urls if sentiment_scores else None
-
-# start_date = "2024-10-13"
-# end_date = "2024-10-13"
-# stock = "CLSK"
-
-# sentiment_score = get_news_sentiment(stock,start_date, end_date)
-
-# print(sentiment_score)
