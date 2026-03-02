@@ -1,5 +1,6 @@
 
 import json
+import re
 from collections import defaultdict
 import os
 from selenium import webdriver
@@ -567,6 +568,37 @@ class web_scraper:
                 
                 except Exception:
                          print("No consent popup found")
+                
+
+                    # --- 2. Get 24h Long/Short Ratio ---
+                # We use the href='/LongShortRatio' as a stable anchor to find the container
+                try:
+                    ls_element = WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((
+                            By.XPATH, 
+                            "//a[contains(@href, '/LongShortRatio')]//div[contains(@class, 'base-color')]"
+                        ))
+                    )
+                    
+                    # The text usually comes out like "48.78\n%/\n51.22\n%" or "48.78 %/ 51.22 %"
+                    raw_text = ls_element.text.strip()
+                    
+                    # Use Regex to find all decimal numbers in the string
+                    # This handles newlines, spaces, and % symbols gracefully
+                    matches = re.findall(r"(\d+(?:\.\d+)?)", raw_text)
+                    
+                    if len(matches) >= 2:
+                        long_short_str = f"{matches[0]}/{matches[1]}%"
+                    else:
+                        print(f"⚠️ Could not parse numbers from text: {raw_text}")
+                        long_short_str = None
+                        
+                except Exception as e:
+                    print(f"Could not find Long/Short element: {e}")
+                    long_short_str = None
+
+                if not long_short_str:
+                    raise ValueError("Failed to extract Long/Short data.")
 
                 # Get 24h percentage change             
                 value_change = WebDriverWait(self.driver, 10).until(
@@ -577,6 +609,8 @@ class web_scraper:
                         )
 
                 pct_chg = None
+
+                
                 for j, el in enumerate(value_change):
                     text = el.text.strip()
                     if text and j == 0:
@@ -613,6 +647,7 @@ class web_scraper:
                 data = {
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "Volume Percentage Change (24h)": pct_chg,
+                    "24h Long/Short Ratio": long_short_str,
                     "Total bitcoin": val_btc,
                 }
 
@@ -654,7 +689,7 @@ if __name__ == "__main__":
     stock_name = "CLSK"
     scraper = web_scraper(stock_name)
     #scraper.scrape_articles()
-    scraper.scrape_bitcoin_address()
+    scraper.scrape_useful_data()
     #scraper.scrape_jobs_release_dates(scraper.jobs_release)
     # scraper.scrape_earnings()
     #scraper.scrape_bitcoin_address()

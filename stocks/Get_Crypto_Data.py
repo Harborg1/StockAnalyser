@@ -79,7 +79,7 @@ class crypto_reader(MarketReaderBase):
                 return "Failed to retrieve SPY data."
             
             # Get all-time high close price
-            all_time_high = btc_data['Close']["BTC-USD"].max()
+            all_time_high = 126198.07 # Source: yahoo finance
 
             # Get latest closing price (most recent available trading day)
             latest_close = btc_data['Close']["BTC-USD"].iloc[-1]
