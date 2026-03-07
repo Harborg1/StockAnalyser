@@ -1352,5 +1352,11 @@
         "Volume Percentage Change (24h)": "-24.43%",
         "24h Long/Short Ratio": "49.18/50.82%",
         "Total bitcoin": "2,436,439.50"
+    },
+    {
+        "timestamp": "2026-03-07 10:53:48",
+        "Volume Percentage Change (24h)": "-12.58%",
+        "24h Long/Short Ratio": "48.66/51.34%",
+        "Total bitcoin": "2,435,533.82"
     }
 ]
