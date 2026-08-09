@@ -13,7 +13,7 @@ BASE = "SPY"
 TICKER = 'TSLA'
 INTERVAL = '1d'
 PERIOD = '730d' if INTERVAL == '1h' else 'max'
-LOOKBACK = 365
+LOOKBACK = 1600
 def get_data(ticker:str, lookback=LOOKBACK, interval=INTERVAL):
     df = yf.download(ticker, interval=interval, auto_adjust=True, period=PERIOD,progress=False)
     
