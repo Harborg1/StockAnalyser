@@ -138,7 +138,7 @@ class App:
         ttk.Label(stock_frame, text="Select stock:", font=('Helvetica', 11)).grid(row=0, column=0, padx=5)
         self.stock_entry = ttk.Combobox(
             stock_frame,
-            values=["TSLA", "CLSK", "NOVO-B.CO", "NVDA", "PLTR", "SPY", "BTC-USD", "^VIX"],
+            values=["RIOT", "CLSK", "CRM", "NVDA", "NOW", "SPY", "BTC-USD", "^VIX"],
             state="readonly",
             width=15,
             font=('Helvetica', 11)
@@ -650,7 +650,7 @@ class App:
                 ).pack(pady=5)
                 
                
-                self.create_link(btc_frame, "View Network Hashrate", "https://minerstat.com/coin/BTC/network-hashrate")
+                self.create_link(btc_frame, "View Network Hashrate", "https://www.blockchain.com/explorer/charts/hash-rate")
                 self.create_link(btc_frame, "View Bitcoin Mining Address", "https://bitref.com/3KmNWUNVGoTzHN8Cyc1kVhR1TSeS6mK9ab")
 
             # Handle sentiment data

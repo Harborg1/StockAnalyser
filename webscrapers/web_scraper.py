@@ -3,6 +3,8 @@ import json
 import re
 from collections import defaultdict
 import os
+from urllib.parse import urljoin
+import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -231,51 +233,68 @@ class web_scraper:
         return updated_earnings + new_earnings
     
     def scrape_articles(self):
-        """Function to scrape articles and return new links."""
-        driver = self.setup_driver()
-
-        url = "https://investors.cleanspark.com/news/"
-        driver.get(url)
-
-        json_file_path = "json_folder\\article_links.json"
+        """Fetch the current year's CleanSpark press releases from Q4's JSON feed."""
+        base_url = "https://investors.cleanspark.com"
+        feed_url = f"{base_url}/feed/PressRelease.svc/GetPressReleaseList"
+        json_file_path = os.path.join("json_folder", "article_links.json")
         existing_links = []
 
         if os.path.exists(json_file_path):
             with open(json_file_path, "r", encoding="utf-8") as file:
                 existing_links = json.load(file)
 
-        try:
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/news/news-details/']"))
-            )
-            soup = BeautifulSoup(driver.page_source, "html.parser")
-        finally:
-            pass
+        params = {
+            "LanguageId": 1,
+            "bodyType": 0,
+            "pressReleaseDateFilter": 3,
+            "categoryId": "00000000-0000-0000-0000-000000000000",
+            "pageSize": -1,
+            "pageNumber": 0,
+            "tagList": "",
+            "includeTags": "true",
+            "year": datetime.now().year,
+            "excludeSelection": 1,
+        }
 
-        articles = soup.select("a[href*='/news/news-details/']")
+        try:
+            response = requests.get(
+                feed_url,
+                params=params,
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=30,
+            )
+            response.raise_for_status()
+            articles = response.json().get("GetPressReleaseListResult", [])
+            if not isinstance(articles, list):
+                raise ValueError("Unexpected response from the CleanSpark news feed")
+        except (requests.RequestException, ValueError) as error:
+            print(f"Error loading CleanSpark news: {error}")
+            return []
+
+        known_links = {
+            item.get("link") for item in existing_links if isinstance(item, dict)
+        }
         new_links = []
 
         for article in articles:
-            title = article.get_text(strip=True)
-            link = article["href"]
-            if not link.startswith("http"):
-                link = "https://investors.cleanspark.com" + link
+            title = (article.get("Headline") or "").strip()
+            relative_link = article.get("LinkToDetailPage") or article.get("LinkToUrl")
+            raw_date = article.get("PressReleaseDate")
 
-                
-            if any(item["link"] == link for item in existing_links):
+            if not title or not relative_link or not raw_date:
                 continue
 
-            driver.get(link)
             try:
-                WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.ID, "_ctrl0_ctl55_divNewsDetailsDateTime"))
-                )
-                article_soup = BeautifulSoup(driver.page_source, "html.parser")
-                date_element = article_soup.find("div", id="_ctrl0_ctl55_divNewsDetailsDateTime")
-                article_date = date_element.get_text(strip=True) if date_element else None
-            except Exception as e:
-                print(f"Error retrieving date for {link}: {e}")
-                article_date = None  # 👈 important change here
+                parsed_date = datetime.strptime(raw_date, "%m/%d/%Y %H:%M:%S")
+            except (TypeError, ValueError):
+                print(f"Skipping article with invalid date: {title} ({raw_date})")
+                continue
+
+            link = urljoin(base_url, relative_link)
+            if link in known_links:
+                continue
+
+            article_date = f"{parsed_date.strftime('%B')} {parsed_date.day}, {parsed_date.year}"
             new_links.append(
                 {
                     "title": title,
@@ -283,10 +302,10 @@ class web_scraper:
                     "date": article_date,
                 }
             )
-
-        driver.quit()
+            known_links.add(link)
 
         if new_links:
+            os.makedirs(os.path.dirname(json_file_path), exist_ok=True)
             with open(json_file_path, "w", encoding="utf-8") as file:
                 json.dump(existing_links + new_links, file, indent=4, ensure_ascii=False)
             print(f"Added {len(new_links)} new article(s)")
