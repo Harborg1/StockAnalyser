@@ -1,1 +1,1 @@
-{"date": "2026-11-24", "signals": {"CLSK": ["DOWN10_TODAY"], "NVDA": ["DOWN10_TODAY"]}}
+{"date": "2026-11-24", "signals": {"CLSK": ["DOWN10_TODAY", "DOWN10_3DAY"], "NVDA": ["DOWN10_TODAY", "UP10_3DAY"]}}
